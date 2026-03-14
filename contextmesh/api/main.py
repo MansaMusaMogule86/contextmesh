@@ -24,13 +24,15 @@ from vector_store import VectorStore
 from embedder    import Embedder
 from auth        import require_auth, AuthManager, _auth
 
-# Billing — import conditionally so API still works without Stripe configured
+# Billing — import conditionally
 try:
     import sys, os as _os
-    sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "..", "billing"))
+    # billing/ is copied to ./billing/ inside the container
+    sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "billing"))
     from paddle_routes import router as billing_router
     _BILLING_ENABLED = True
-except ImportError:
+except Exception as e:
+    print(f"Billing not loaded: {e}")
     _BILLING_ENABLED = False
 
 # ── Init ─────────────────────────────────────────────────────────────────────
