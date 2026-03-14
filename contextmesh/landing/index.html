@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContextMesh — Persistent Memory for AI Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Azeret+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:    #0A0A08;
+    --paper:  #F2EFE8;
+    --cream:  #E8E4DA;
+    --lime:   #C8FF00;
+    --lime2:  #A8E000;
+    --mid:    #6B6B60;
+    --light:  #B8B5AB;
+    --border: #D4D0C8;
+    --red:    #FF3B2E;
+    --display:'Syne', sans-serif;
+    --mono:   'Azeret Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  button { cursor: crosshair; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--paper);
+    border-bottom: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 56px;
+  }
+  .nav-logo { font-family: var(--display); font-size: 18px; font-weight: 800; letter-spacing: -0.03em; display: flex; align-items: center; gap: 10px; }
+  .nav-mark {
+    width: 24px; height: 24px; background: var(--ink); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--lime); flex-shrink: 0;
+  }
+  .nav-links { display: flex; align-items: center; gap: 32px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .nav-links a { color: var(--mid); transition: color .15s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink); color: var(--paper);
+    padding: 9px 22px; font-family: var(--mono); font-size: 12px;
+    font-weight: 500; border: 2px solid var(--ink); border-radius: 0;
+    transition: all .15s; letter-spacing: 0.04em;
+  }
+  .nav-cta:hover { background: var(--lime); color: var(--ink); border-color: var(--ink); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding-top: 56px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  /* Grid lines background */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 80px 40px 60px;
+    gap: 0;
+    position: relative;
+    z-index: 2;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .hero-left { border-right: 2px solid var(--ink); padding-right: 60px; }
+  .hero-right { padding-left: 60px; display: flex; flex-direction: column; justify-content: flex-end; }
+
+  .hero-eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--mid); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow-line { width: 32px; height: 1px; background: var(--mid); }
+
+  .hero-h1 {
+    font-family: var(--display); font-size: clamp(56px, 8vw, 96px);
+    font-weight: 800; line-height: 0.92; letter-spacing: -0.04em;
+    margin-bottom: 40px; color: var(--ink);
+  }
+
+  .hero-h1 em {
+    font-style: normal;
+    background: var(--lime);
+    padding: 0 6px;
+    display: inline-block;
+    line-height: 1;
+    transform: skewX(-2deg);
+  }
+
+  .hero-desc {
+    font-size: 15px; color: var(--mid); line-height: 1.7;
+    max-width: 480px; margin-bottom: 48px;
+  }
+
+  .hero-actions { display: flex; gap: 16px; align-items: center; }
+  .btn-hero-primary {
+    background: var(--ink); color: var(--paper);
+    padding: 14px 32px; font-family: var(--mono);
+    font-size: 13px; font-weight: 500; border: 2px solid var(--ink);
+    transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-hero-primary:hover { background: var(--lime); color: var(--ink); }
+  .btn-hero-ghost {
+    color: var(--mid); font-size: 12px; font-family: var(--mono);
+    display: flex; align-items: center; gap: 6px;
+    border-bottom: 1px solid transparent; transition: all .15s;
+    letter-spacing: 0.04em;
+  }
+  .btn-hero-ghost:hover { color: var(--ink); border-bottom-color: var(--ink); }
+
+  /* Hero right — terminal card */
+  .terminal-card {
+    background: var(--ink);
+    border: 2px solid var(--ink);
+    padding: 24px;
+    position: relative;
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .term-bar {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 20px;
+    padding-bottom: 14px; border-bottom: 1px solid #1e201e;
+  }
+  .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .td-r { background: #FF3B2E; }
+  .td-y { background: #FFB340; }
+  .td-g { background: #00FF88; }
+  .term-title { font-size: 11px; color: #4A5A4A; margin-left: 6px; letter-spacing: 0.06em; }
+  .term-code { font-family: var(--mono); font-size: 12px; line-height: 2; }
+  .tc-dim    { color: #4A5A4A; }
+  .tc-green  { color: #00FF88; }
+  .tc-blue   { color: #4D9FFF; }
+  .tc-amber  { color: #FFB340; }
+  .tc-text   { color: #C8D8C8; }
+  .tc-result { color: #8A9A8A; font-size: 11px; padding-left: 18px; }
+
+  .hero-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border-top: 2px solid var(--ink);
+  }
+  .hero-stat {
+    padding: 24px 40px;
+    border-right: 2px solid var(--ink);
+  }
+  .hero-stat:last-child { border-right: none; }
+  .hs-num { font-family: var(--display); font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+  .hs-label { font-size: 11px; color: var(--mid); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+  /* ── PROBLEM SECTION ── */
+  .section-problem {
+    display: grid; grid-template-columns: 1fr 2fr;
+    border-bottom: 2px solid var(--ink);
+  }
+  .section-label-col {
+    border-right: 2px solid var(--ink); padding: 60px 40px;
+    display: flex; align-items: flex-start;
+  }
+  .section-label-vert {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--mid); font-family: var(--mono);
+  }
+  .section-content { padding: 60px 60px; }
+  .problem-h { font-family: var(--display); font-size: clamp(32px,4vw,52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 32px; }
+  .problem-p { font-size: 15px; color: var(--mid); line-height: 1.8; max-width: 580px; margin-bottom: 20px; }
+  .problem-callout {
+    border-left: 4px solid var(--lime); padding: 16px 24px;
+    background: var(--cream); font-size: 14px; color: var(--ink);
+    line-height: 1.7; margin-top: 32px; font-family: var(--mono);
+  }
+
+  /* ── HOW IT WORKS ── */
+  .section-how { border-bottom: 2px solid var(--ink); }
+  .how-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 48px 60px 0; border-bottom: 2px solid var(--ink);
+    padding-bottom: 32px;
+  }
+  .how-h { font-family: var(--display); font-size: clamp(28px,3vw,44px); font-weight: 800; letter-spacing: -0.03em; }
+  .how-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  .how-step {
+    padding: 48px 40px;
+    border-right: 2px solid var(--ink);
+    position: relative;
+  }
+  .how-step:last-child { border-right: none; }
+  .step-num {
+    font-family: var(--display); font-size: 64px; font-weight: 800;
+    color: var(--border); line-height: 1; margin-bottom: 20px;
+    position: absolute; top: 24px; right: 24px;
+  }
+  .step-icon { font-size: 28px; margin-bottom: 16px; }
+  .step-title { font-family: var(--display); font-size: 18px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.02em; }
+  .step-desc { font-size: 13px; color: var(--mid); line-height: 1.7; }
+
+  /* ── CODE SECTION ── */
+  .section-code {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-bottom: 2px solid var(--ink);
+  }
+  .code-left { padding: 60px; border-right: 2px solid var(--ink); }
+  .code-right { padding: 60px; background: var(--ink); color: var(--paper); }
+  .code-h { font-family: var(--display); font-size: clamp(28px,3vw,42px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 24px; }
+  .code-sub { font-size: 14px; color: var(--mid); line-height: 1.7; margin-bottom: 40px; }
+  .lang-tabs { display: flex; margin-bottom: 0; border-bottom: 2px solid #1e201e; }
+  .lang-tab {
+    padding: 10px 20px; font-size: 12px; cursor: pointer;
+    color: #4A5A4A; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all .15s; font-family: var(--mono);
+  }
+  .lang-tab.on { color: #00FF88; border-bottom-color: #00FF88; }
+  .code-block {
+    font-family: var(--mono); font-size: 12px; line-height: 1.9;
+    padding: 24px 0; display: none;
+  }
+  .code-block.on { display: block; }
+  .co-dim   { color: #4A5A4A; }
+  .co-green { color: #00FF88; }
+  .co-blue  { color: #4D9FFF; }
+  .co-amber { color: #FFB340; }
+  .co-text  { color: #C8D8C8; }
+  .code-features { display: flex; flex-direction: column; gap: 16px; }
+  .feat-item { display: flex; align-items: flex-start; gap: 14px; }
+  .feat-check { color: var(--lime2); font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .feat-text { font-size: 14px; color: var(--ink); line-height: 1.5; }
+  .feat-sub { font-size: 12px; color: var(--mid); margin-top: 2px; }
+
+  /* ── PRICING ── */
+  .section-pricing { padding: 80px 60px; border-bottom: 2px solid var(--ink); }
+  .pricing-h {
+    font-family: var(--display); font-size: clamp(32px,4vw,56px);
+    font-weight: 800; letter-spacing: -0.04em; text-align: center;
+    margin-bottom: 16px;
+  }
+  .pricing-sub { text-align: center; color: var(--mid); font-size: 14px; margin-bottom: 60px; }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 2px solid var(--ink); }
+  .price-card {
+    padding: 40px; border-right: 2px solid var(--ink);
+    position: relative; transition: background .2s;
+  }
+  .price-card:last-child { border-right: none; }
+  .price-card.featured { background: var(--ink); color: var(--paper); }
+  .price-label {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--mid); margin-bottom: 8px; font-family: var(--mono);
+  }
+  .price-card.featured .price-label { color: #4A5A4A; }
+  .price-amount { font-family: var(--display); font-size: 52px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
+  .price-period { font-size: 12px; color: var(--mid); margin-bottom: 32px; }
+  .price-card.featured .price-period { color: #6A7A6A; }
+  .price-divider { border: none; border-top: 1px solid var(--border); margin: 0 0 24px; }
+  .price-card.featured .price-divider { border-color: #1e201e; }
+  .price-line { display: flex; gap: 10px; font-size: 13px; margin-bottom: 10px; align-items: flex-start; color: var(--mid); }
+  .price-card.featured .price-line { color: #8A9A8A; }
+  .price-line-check { color: var(--lime2); flex-shrink: 0; }
+  .price-card.featured .price-line-check { color: #00FF88; }
+  .price-cta {
+    display: block; text-align: center; margin-top: 32px;
+    padding: 13px; font-family: var(--mono); font-size: 13px;
+    font-weight: 500; border: 2px solid var(--border); color: var(--ink);
+    transition: all .15s;
+  }
+  .price-card.featured .price-cta { border-color: #00FF88; color: #00FF88; }
+  .price-cta:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .price-card.featured .price-cta:hover { background: var(--lime); color: var(--ink); border-color: var(--lime); }
+  .featured-badge {
+    position: absolute; top: 20px; right: 20px;
+    font-size: 10px; padding: 3px 10px; background: var(--lime); color: var(--ink);
+    font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; font-family: var(--mono);
+  }
+
+  /* ── CTA SECTION ── */
+  .section-cta {
+    background: var(--ink); color: var(--paper);
+    padding: 100px 60px; display: flex; flex-direction: column; align-items: center;
+    text-align: center; position: relative; overflow: hidden;
+  }
+  .section-cta::before {
+    content: 'CM';
+    position: absolute; font-family: var(--display); font-weight: 800;
+    font-size: clamp(200px, 30vw, 400px); color: rgba(255,255,255,.02);
+    letter-spacing: -0.06em; pointer-events: none; user-select: none;
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+  }
+  .cta-h { font-family: var(--display); font-size: clamp(40px,6vw,80px); font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 24px; position: relative; }
+  .cta-sub { font-size: 15px; color: #6A7A6A; max-width: 500px; margin-bottom: 48px; position: relative; }
+  .cta-form { display: flex; gap: 0; width: 100%; max-width: 440px; position: relative; }
+  .cta-input {
+    flex: 1; padding: 14px 20px; background: #0D120D; border: 2px solid #1e201e;
+    font-family: var(--mono); font-size: 13px; color: var(--paper); outline: none;
+    transition: border-color .15s;
+  }
+  .cta-input::placeholder { color: #4A5A4A; }
+  .cta-input:focus { border-color: var(--lime); }
+  .cta-submit {
+    padding: 14px 24px; background: var(--lime); color: var(--ink);
+    border: 2px solid var(--lime); font-family: var(--mono); font-size: 13px;
+    font-weight: 600; transition: all .15s; white-space: nowrap;
+  }
+  .cta-submit:hover { background: var(--lime2); border-color: var(--lime2); }
+  .cta-note { font-size: 11px; color: #4A5A4A; margin-top: 14px; position: relative; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--ink); color: #4A5A4A;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 60px; border-top: 2px solid #1e201e; font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+  .footer-logo { font-family: var(--display); font-size: 16px; font-weight: 800; color: var(--paper); letter-spacing: -0.02em; }
+  .footer-links { display: flex; gap: 28px; }
+  .footer-links a { color: #4A5A4A; transition: color .15s; text-transform: uppercase; letter-spacing: 0.1em; }
+  .footer-links a:hover { color: var(--paper); }
+
+  /* ── ANIMATIONS ── */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    .hero-inner { grid-template-columns: 1fr; }
+    .hero-left { border-right: none; border-bottom: 2px solid var(--ink); padding-right: 0; padding-bottom: 40px; }
+    .hero-right { padding-left: 0; padding-top: 40px; }
+    .hero-stats { grid-template-columns: 1fr 1fr; }
+    .hero-stat:last-child { border-right: none; }
+    .section-problem { grid-template-columns: 1fr; }
+    .section-label-col { display: none; }
+    .section-content { padding: 40px 24px; }
+    .how-grid { grid-template-columns: 1fr 1fr; }
+    .section-code { grid-template-columns: 1fr; }
+    .code-left { border-right: none; border-bottom: 2px solid var(--ink); padding: 40px 24px; }
+    .code-right { padding: 40px 24px; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .price-card { border-right: none; border-bottom: 2px solid var(--ink); }
+    .price-card:last-child { border-bottom: none; }
+    .section-pricing { padding: 60px 24px; }
+    footer { padding: 20px 24px; flex-direction: column; gap: 16px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-mark">CM</div>
+    ContextMesh
+  </div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="https://docs.contextmesh.dev">Docs</a>
+    <a href="https://dashboard.contextmesh.dev">Dashboard</a>
+  </div>
+  <button class="nav-cta" onclick="document.querySelector('.cta-input').focus()">Start Free →</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-eyebrow"><span class="eyebrow-line"></span> Persistent AI Memory</div>
+      <h1 class="hero-h1">Every<br>agent<br><em>forgets.</em><br>Until now.</h1>
+      <p class="hero-desc">ContextMesh is a shared memory layer your AI agents can write to and read from — across tools, sessions, and your entire team. One API. Any agent.</p>
+      <div class="hero-actions">
+        <button class="btn-hero-primary" onclick="document.querySelector('.cta-input').focus()">
+          Get API Key <span>→</span>
+        </button>
+        <a href="https://docs.contextmesh.dev" class="btn-hero-ghost">Read the docs ↗</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="terminal-card">
+        <div class="term-bar">
+          <div class="term-dot td-r"></div>
+          <div class="term-dot td-y"></div>
+          <div class="term-dot td-g"></div>
+          <span class="term-title">contextmesh — python sdk</span>
+        </div>
+        <div class="term-code">
+          <div><span class="tc-dim"># Any agent writes context</span></div>
+          <div><span class="tc-blue">mesh</span><span class="tc-text">.</span><span class="tc-green">remember</span><span class="tc-text">(</span><span class="tc-amber">"prod DB is</span></div>
+          <div><span class="tc-amber">  postgres 15, us-east-1"</span><span class="tc-text">)</span></div>
+          <br>
+          <div><span class="tc-dim"># Any other agent reads it</span></div>
+          <div><span class="tc-blue">results</span><span class="tc-text"> = </span><span class="tc-blue">mesh</span><span class="tc-text">.</span><span class="tc-green">query</span><span class="tc-text">(</span></div>
+          <div><span class="tc-amber">  "what do we know about</span></div>
+          <div><span class="tc-amber">   our database?"</span></div>
+          <div><span class="tc-text">)</span></div>
+          <br>
+          <div><span class="tc-dim"># → [</span></div>
+          <div class="tc-result">{ score: 0.94,</div>
+          <div class="tc-result">  text: "prod DB is postgres 15..." }</div>
+          <div><span class="tc-dim"># ]</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hs-num">&lt;50ms</div>
+      <div class="hs-label">Query latency p99</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hs-num">MCP</div>
+      <div class="hs-label">Native MCP server included</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hs-num">∞</div>
+      <div class="hs-label">Cross-agent, cross-tool</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="section-problem">
+  <div class="section-label-col">
+    <div class="section-label-vert">The Problem</div>
+  </div>
+  <div class="section-content reveal">
+    <h2 class="problem-h">AI agents are powerful.<br>But they're amnesiac.</h2>
+    <p class="problem-p">Cursor doesn't know what Claude decided last week. Claude doesn't know what your Cursor session learned yesterday. Every new conversation, every new tool, every new session — they all start from zero.</p>
+    <p class="problem-p">You repeat yourself constantly. "As I mentioned before, our API uses camelCase." "Like I said, the DB is on AWS." You're the shared memory layer. You shouldn't have to be.</p>
+    <div class="problem-callout">
+      ContextMesh is the RAM layer above all your agents.<br>Write once. Any agent reads it. Always.
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section-how" id="how">
+  <div class="how-header">
+    <h2 class="how-h">Four endpoints.<br>That's the whole API.</h2>
+    <div style="font-size:12px;color:var(--mid);text-align:right;font-family:var(--mono)">No learning curve.<br>10 min integration.</div>
+  </div>
+  <div class="how-grid">
+    <div class="how-step reveal">
+      <div class="step-num">01</div>
+      <div class="step-icon">◈</div>
+      <div class="step-title">POST /remember</div>
+      <div class="step-desc">An agent writes a piece of context. It's embedded into a 1536-dim vector and stored with your metadata — tags, agent name, timestamp, confidence score.</div>
+    </div>
+    <div class="how-step reveal" style="transition-delay:.1s">
+      <div class="step-num">02</div>
+      <div class="step-icon">⌕</div>
+      <div class="step-title">POST /query</div>
+      <div class="step-desc">Any agent asks a natural language question. ContextMesh does semantic similarity search and returns the top-N most relevant entries, ranked by score.</div>
+    </div>
+    <div class="how-step reveal" style="transition-delay:.2s">
+      <div class="step-num">03</div>
+      <div class="step-icon">✕</div>
+      <div class="step-title">DELETE /forget</div>
+      <div class="step-desc">When context becomes stale, remove it by ID. Clean up outdated decisions or wrong assumptions before they confuse your agents.</div>
+    </div>
+    <div class="how-step reveal" style="transition-delay:.3s">
+      <div class="step-num">04</div>
+      <div class="step-icon">≡</div>
+      <div class="step-title">GET /list</div>
+      <div class="step-desc">Browse your entire context store. Filter by tag. Audit what your agents know. Paginate through the full history with limit + offset.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE -->
+<section class="section-code">
+  <div class="code-left reveal">
+    <h2 class="code-h">Works where<br>you already work.</h2>
+    <p class="code-sub">Python SDK, JavaScript SDK, MCP server, or raw REST. Integrates with Cursor, Claude Code, Cline, and anything else that speaks MCP.</p>
+    <div class="code-features">
+      <div class="feat-item">
+        <span class="feat-check">◈</span>
+        <div>
+          <div class="feat-text">MCP Server included</div>
+          <div class="feat-sub">One line in mcp.json and Claude/Cursor gain persistent memory automatically.</div>
+        </div>
+      </div>
+      <div class="feat-item">
+        <span class="feat-check">◈</span>
+        <div>
+          <div class="feat-text">Namespaced workspaces</div>
+          <div class="feat-sub">Each workspace is isolated. Team plans get 10 workspaces. Enterprise is unlimited.</div>
+        </div>
+      </div>
+      <div class="feat-item">
+        <span class="feat-check">◈</span>
+        <div>
+          <div class="feat-text">Semantic search, not keyword</div>
+          <div class="feat-sub">"What do we know about our DB?" finds "postgres 15 on AWS" even without keyword overlap.</div>
+        </div>
+      </div>
+      <div class="feat-item">
+        <span class="feat-check">◈</span>
+        <div>
+          <div class="feat-text">Tag, filter, expire</div>
+          <div class="feat-sub">Tag entries by type. Filter queries to specific domains. Keep context clean and relevant.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="code-right reveal" style="transition-delay:.15s">
+    <div class="lang-tabs">
+      <div class="lang-tab on" onclick="switchLang('python', this)">Python</div>
+      <div class="lang-tab" onclick="switchLang('js', this)">JavaScript</div>
+      <div class="lang-tab" onclick="switchLang('mcp', this)">MCP</div>
+      <div class="lang-tab" onclick="switchLang('curl', this)">cURL</div>
+    </div>
+    <div class="code-block on" id="lang-python">
+<span class="co-dim"># pip install contextmesh</span>
+<span class="co-dim">from</span> <span class="co-green">contextmesh</span> <span class="co-dim">import</span> <span class="co-text">Mesh</span>
+
+<span class="co-text">mesh</span> = <span class="co-green">Mesh</span>(<span class="co-amber">"cm_live_your_key"</span>)
+
+<span class="co-dim"># Store context</span>
+<span class="co-text">mesh</span>.<span class="co-green">remember</span>(
+  <span class="co-amber">"API rate limit is 1000 req/min"</span>,
+  <span class="co-text">tags</span>=[<span class="co-amber">"infra"</span>],
+)
+
+<span class="co-dim"># Query it from any agent</span>
+<span class="co-text">hits</span> = <span class="co-text">mesh</span>.<span class="co-green">query</span>(<span class="co-amber">"rate limits?"</span>)
+<span class="co-dim"># → [{ text: "API rate limit...", score: 0.96 }]</span>
+    </div>
+    <div class="code-block" id="lang-js">
+<span class="co-dim">// npm install contextmesh</span>
+<span class="co-dim">import</span> { <span class="co-green">Mesh</span> } <span class="co-dim">from</span> <span class="co-amber">"contextmesh"</span>;
+
+<span class="co-dim">const</span> <span class="co-text">mesh</span> = <span class="co-dim">new</span> <span class="co-green">Mesh</span>(<span class="co-amber">"cm_live_your_key"</span>);
+
+<span class="co-dim">// Store context</span>
+<span class="co-dim">await</span> mesh.<span class="co-green">remember</span>(<span class="co-amber">"Use camelCase for JS"</span>, {
+  <span class="co-text">tags</span>: [<span class="co-amber">"conventions"</span>],
+});
+
+<span class="co-dim">// Query it later</span>
+<span class="co-dim">const</span> <span class="co-text">hits</span> = <span class="co-dim">await</span> mesh.<span class="co-green">query</span>(<span class="co-amber">"code style?"</span>);
+    </div>
+    <div class="code-block" id="lang-mcp">
+<span class="co-dim">// ~/.cursor/mcp.json</span>
+{
+  <span class="co-green">"contextmesh"</span>: {
+    <span class="co-text">"command"</span>: <span class="co-amber">"npx"</span>,
+    <span class="co-text">"args"</span>: [<span class="co-amber">"contextmesh-mcp"</span>],
+    <span class="co-text">"env"</span>: {
+      <span class="co-green">"CM_KEY"</span>: <span class="co-amber">"cm_live_your_key"</span>
+    }
+  }
+}
+
+<span class="co-dim">// Claude/Cursor now has tools:</span>
+<span class="co-dim">//  remember(text, tags?)</span>
+<span class="co-dim">//  recall(query, top_k?)</span>
+<span class="co-dim">//  forget(id)</span>
+<span class="co-dim">//  list_context()</span>
+    </div>
+    <div class="code-block" id="lang-curl">
+<span class="co-dim"># Store context</span>
+curl -X POST https://api.contextmesh.dev/remember \
+  -H <span class="co-amber">"Authorization: Bearer cm_live_..."</span> \
+  -d <span class="co-amber">'{"text":"prod DB is postgres 15",
+     "tags":["database"]}'</span>
+
+<span class="co-dim"># Query</span>
+curl -X POST https://api.contextmesh.dev/query \
+  -H <span class="co-amber">"Authorization: Bearer cm_live_..."</span> \
+  -d <span class="co-amber">'{"q":"database info?","top_k":3}'</span>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section-pricing" id="pricing">
+  <h2 class="pricing-h reveal">Simple pricing.</h2>
+  <p class="pricing-sub reveal">No per-token fees. No per-request surprises. Flat monthly rate by plan.</p>
+  <div class="pricing-grid reveal">
+    <div class="price-card" data-plan="solo">
+      <div class="price-label">Solo</div>
+      <div class="price-amount">$19</div>
+      <div class="price-period">/ month</div>
+      <hr class="price-divider">
+      <div class="price-line"><span class="price-line-check">◈</span> 1 workspace</div>
+      <div class="price-line"><span class="price-line-check">◈</span> 500k context entries</div>
+      <div class="price-line"><span class="price-line-check">◈</span> 100k queries / month</div>
+      <div class="price-line"><span class="price-line-check">◈</span> Python + JS SDK</div>
+      <div class="price-line"><span class="price-line-check">◈</span> MCP server</div>
+      <a href="#" class="price-cta" onclick="startCheckout('solo');return false">Get started →</a>
+    </div>
+    <div class="price-card featured" data-plan="team">
+      <div class="featured-badge">Popular</div>
+      <div class="price-label">Team</div>
+      <div class="price-amount">$99</div>
+      <div class="price-period">/ month</div>
+      <hr class="price-divider">
+      <div class="price-line"><span class="price-line-check">◈</span> 10 workspaces</div>
+      <div class="price-line"><span class="price-line-check">◈</span> 5M context entries</div>
+      <div class="price-line"><span class="price-line-check">◈</span> 1M queries / month</div>
+      <div class="price-line"><span class="price-line-check">◈</span> Everything in Solo</div>
+      <div class="price-line"><span class="price-line-check">◈</span> Usage analytics</div>
+      <a href="#" class="price-cta" onclick="startCheckout('team');return false">Get started →</a>
+    </div>
+    <div class="price-card" data-plan="enterprise">
+      <div class="price-label">Enterprise</div>
+      <div class="price-amount">$599</div>
+      <div class="price-period">/ month</div>
+      <hr class="price-divider">
+      <div class="price-line"><span class="price-line-check">◈</span> Unlimited workspaces</div>
+      <div class="price-line"><span class="price-line-check">◈</span> Unlimited entries</div>
+      <div class="price-line"><span class="price-line-check">◈</span> Unlimited queries</div>
+      <div class="price-line"><span class="price-line-check">◈</span> On-prem option</div>
+      <div class="price-line"><span class="price-line-check">◈</span> SLA + dedicated support</div>
+      <a href="mailto:hello@contextmesh.dev?subject=Enterprise%20Plan" class="price-cta">Contact us →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section-cta">
+  <h2 class="cta-h">Start remembering.</h2>
+  <p class="cta-sub">Get your API key in 30 seconds. No credit card required for the free tier.</p>
+  <div class="cta-form">
+    <input class="cta-input" type="email" placeholder="your@email.com">
+    <button class="cta-submit" onclick="handleSignup(this)">Get Key →</button>
+  </div>
+  <p class="cta-note">Free tier: 10k queries/month · No credit card required</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">ContextMesh</div>
+  <div class="footer-links">
+    <a href="#">Docs</a>
+    <a href="#">GitHub</a>
+    <a href="#">Pricing</a>
+    <a href="#">Status</a>
+  </div>
+  <div style="font-size:11px;letter-spacing:0.06em">© 2025 ContextMesh</div>
+</footer>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Code language switcher
+function switchLang(lang, el) {
+  document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.code-block').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('lang-' + lang).classList.add('on');
+}
+
+// ── Config — swap these after deploy ────────────────────────────────────────
+const API_BASE = 'https://api.contextmesh.dev';
+
+// ── Free plan signup ─────────────────────────────────────────────────────────
+async function handleSignup(btn) {
+  const input = btn.previousElementSibling;
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) {
+    input.style.borderColor = '#FF3B2E';
+    setTimeout(() => input.style.borderColor = '', 1200);
+    return;
+  }
+
+  // Loading state
+  const orig = btn.textContent;
+  btn.textContent = 'Sending...';
+  btn.disabled    = true;
+  input.disabled  = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/billing/checkout`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ plan: 'free', email }),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    // Show success inline
+    btn.textContent         = '✓ Key sent!';
+    btn.style.background    = '#00FF88';
+    btn.style.borderColor   = '#00FF88';
+    btn.style.color         = '#0A0A08';
+    input.style.borderColor = '#00FF88';
+
+    // Show key directly on page (also emailed)
+    if (data.api_key) {
+      const keyBox = document.createElement('div');
+      keyBox.style.cssText = 'margin-top:16px;padding:14px;background:#141414;border:1px solid #00FF88;border-radius:5px;font-family:monospace;font-size:12px;color:#00FF88;word-break:break-all;max-width:440px;';
+      keyBox.innerHTML = `<span style="color:#4A5A4A;font-size:10px;display:block;margin-bottom:6px;letter-spacing:0.1em;">YOUR API KEY — SAVE THIS</span>${data.api_key}`;
+      btn.closest('.section-cta').appendChild(keyBox);
+    }
+
+  } catch(err) {
+    btn.textContent  = orig;
+    btn.disabled     = false;
+    input.disabled   = false;
+    showToast('Something went wrong. Try again.', 'error');
+    console.error(err);
+  }
+}
+
+// ── Paid plan checkout ───────────────────────────────────────────────────────
+async function startCheckout(plan) {
+  const email = prompt(`Enter your email for the ${plan.toUpperCase()} plan:`);
+  if (!email || !email.includes('@')) return;
+
+  const btn = document.querySelector(`[data-plan="${plan}"] .price-cta`);
+  if (btn) { btn.textContent = 'Loading...'; btn.style.opacity = '0.6'; }
+
+  try {
+    const res = await fetch(`${API_BASE}/billing/checkout`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ plan, email }),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    window.location.href = data.checkout_url;
+
+  } catch(err) {
+    if (btn) { btn.textContent = 'Get started →'; btn.style.opacity = '1'; }
+    showToast('Checkout unavailable. Contact hello@contextmesh.dev', 'error');
+    console.error(err);
+  }
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'info') {
+  const t = document.createElement('div');
+  const bg = type === 'error' ? '#FF3B2E' : '#00FF88';
+  const fg = type === 'error' ? '#fff'    : '#0A0A08';
+  t.style.cssText = `position:fixed;bottom:32px;right:32px;z-index:9999;padding:14px 20px;background:${bg};color:${fg};font-family:monospace;font-size:13px;border-radius:5px;box-shadow:0 4px 24px rgba(0,0,0,.4);transition:opacity .3s;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+// Parallax grid
+document.addEventListener('mousemove', e => {
+  const x = (e.clientX / window.innerWidth - 0.5) * 12;
+  const y = (e.clientY / window.innerHeight - 0.5) * 12;
+  const hero = document.querySelector('.hero');
+  if (hero) hero.style.backgroundPosition = `${x}px ${y}px`;
+});
+</script>
+</body>
+</html>

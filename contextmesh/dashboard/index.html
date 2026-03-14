@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContextMesh — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Clash+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #080A09;
+    --bg2:       #0D0F0D;
+    --bg3:       #111310;
+    --border:    #1C201C;
+    --border2:   #242924;
+    --green:     #00FF88;
+    --green-dim: #00FF8820;
+    --green-mid: #00FF8840;
+    --amber:     #FFB340;
+    --red:       #FF4560;
+    --blue:      #4D9FFF;
+    --text:      #E8EDE8;
+    --text2:     #8A9A8A;
+    --text3:     #4A5A4A;
+    --mono:      'IBM Plex Mono', monospace;
+    --display:   'Clash Display', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── LAYOUT ── */
+  .app { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    grid-column: 1 / -1;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0;
+    padding: 0;
+    position: relative;
+    z-index: 10;
+  }
+  .topbar-logo {
+    width: 220px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 20px;
+    border-right: 1px solid var(--border);
+    height: 100%;
+    flex-shrink: 0;
+  }
+  .logo-mark {
+    width: 22px; height: 22px;
+    background: var(--green);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #000; font-family: var(--mono);
+    flex-shrink: 0;
+  }
+  .logo-name { font-family: var(--display); font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+  .topbar-center { flex: 1; display: flex; align-items: center; padding: 0 20px; gap: 8px; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-text { font-size: 11px; color: var(--text2); }
+  .topbar-right { padding: 0 20px; display: flex; align-items: center; gap: 16px; }
+  .plan-badge {
+    font-size: 10px; font-family: var(--mono);
+    padding: 3px 9px; border-radius: 3px;
+    background: var(--green-dim); color: var(--green);
+    border: 1px solid var(--green-mid);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .workspace-id { font-size: 11px; color: var(--text3); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .sidebar-section { padding: 20px 12px 8px; }
+  .sidebar-label {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text3); padding: 0 8px; margin-bottom: 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 5px;
+    cursor: pointer; color: var(--text2); font-size: 12px;
+    transition: all .15s; border: 1px solid transparent;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: var(--green-dim); color: var(--green); border-color: var(--green-mid); }
+  .nav-icon { font-size: 14px; flex-shrink: 0; }
+  .nav-count {
+    margin-left: auto; font-size: 10px;
+    background: var(--bg3); padding: 1px 6px; border-radius: 10px;
+    color: var(--text3);
+  }
+  .nav-item.active .nav-count { background: var(--green-mid); color: var(--green); }
+
+  .sidebar-footer {
+    margin-top: auto; padding: 16px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .usage-bar-wrap { margin-bottom: 12px; }
+  .usage-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+  .usage-label span { color: var(--green); }
+  .usage-bar { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .usage-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 1s ease; box-shadow: 0 0 8px var(--green); }
+
+  /* ── MAIN ── */
+  .main { overflow: hidden; display: flex; flex-direction: column; background: var(--bg); }
+
+  /* ── PAGE: FEED ── */
+  #page-feed { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  #page-query, #page-memory, #page-settings { flex: 1; overflow-y: auto; padding: 24px; display: none; }
+
+  .page-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .page-title { font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* ── STAT CARDS ── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .stat-card {
+    padding: 16px 20px;
+    border-right: 1px solid var(--border);
+    position: relative; overflow: hidden;
+    cursor: default;
+  }
+  .stat-card:last-child { border-right: none; }
+  .stat-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 60%, var(--green-dim));
+    opacity: 0; transition: opacity .3s;
+  }
+  .stat-card:hover::before { opacity: 1; }
+  .stat-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-family: var(--display); font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .stat-delta { font-size: 10px; color: var(--green); margin-top: 6px; }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    padding: 12px 20px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg);
+  }
+  .tag-chip {
+    font-size: 11px; padding: 4px 10px; border-radius: 3px;
+    background: var(--bg3); color: var(--text2);
+    border: 1px solid var(--border2); cursor: pointer; transition: all .15s;
+  }
+  .tag-chip:hover, .tag-chip.on { background: var(--green-dim); color: var(--green); border-color: var(--green-mid); }
+  .toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn {
+    font-family: var(--mono); font-size: 11px; padding: 6px 14px;
+    border-radius: 3px; cursor: pointer; transition: all .15s;
+    border: 1px solid var(--border2); background: var(--bg3); color: var(--text2);
+  }
+  .btn:hover { border-color: var(--green-mid); color: var(--green); background: var(--green-dim); }
+  .btn-primary { background: var(--green); color: #000; border-color: var(--green); font-weight: 600; }
+  .btn-primary:hover { background: #00dd77; border-color: #00dd77; color: #000; }
+
+  /* ── ENTRIES TABLE ── */
+  .entries-wrap { flex: 1; overflow-y: auto; }
+  .entry-row {
+    display: grid; grid-template-columns: 36px 1fr 120px 80px 80px 44px;
+    align-items: center; gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px; min-height: 52px;
+    cursor: pointer; transition: background .1s;
+    animation: fadeIn .3s ease forwards;
+    opacity: 0;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+  .entry-row:hover { background: var(--bg2); }
+  .entry-num { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .entry-text { padding: 12px 16px 12px 0; }
+  .entry-main { font-size: 13px; color: var(--text); line-height: 1.4; margin-bottom: 4px; }
+  .entry-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .entry-tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 2px;
+    background: var(--bg3); color: var(--text3); border: 1px solid var(--border2);
+  }
+  .entry-agent { font-size: 10px; color: var(--text3); }
+  .entry-date { font-size: 11px; color: var(--text3); }
+  .score-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .score-bar { width: 44px; height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 2px; }
+  .score-label { font-size: 10px; color: var(--text3); min-width: 28px; }
+  .entry-actions { display: flex; justify-content: center; }
+  .del-btn {
+    width: 26px; height: 26px; border-radius: 3px; cursor: pointer;
+    background: transparent; border: 1px solid transparent;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    opacity: 0; transition: all .15s; color: var(--text3);
+  }
+  .entry-row:hover .del-btn { opacity: 1; }
+  .del-btn:hover { background: rgba(255,69,96,.1); border-color: rgba(255,69,96,.3); color: var(--red); }
+
+  /* Table header */
+  .entry-header {
+    display: grid; grid-template-columns: 36px 1fr 120px 80px 80px 44px;
+    padding: 0 20px; gap: 0;
+    border-bottom: 1px solid var(--border); background: var(--bg2); flex-shrink: 0;
+  }
+  .th { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); padding: 8px 0; }
+  .th.txt { padding-left: 0; }
+
+  /* ── QUERY PAGE ── */
+  .query-box {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 6px; overflow: hidden; margin-bottom: 24px;
+  }
+  .query-input-row { display: flex; align-items: stretch; }
+  .query-input {
+    flex: 1; padding: 14px 16px; background: transparent;
+    border: none; outline: none; font-family: var(--mono); font-size: 13px;
+    color: var(--text); resize: none; min-height: 52px;
+  }
+  .query-input::placeholder { color: var(--text3); }
+  .query-run-btn {
+    padding: 0 20px; background: var(--green); color: #000;
+    border: none; cursor: pointer; font-family: var(--mono); font-size: 12px;
+    font-weight: 600; transition: background .15s;
+  }
+  .query-run-btn:hover { background: #00dd77; }
+  .query-opts { display: flex; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--border); align-items: center; }
+  .q-opt-label { font-size: 11px; color: var(--text2); }
+  .q-opt-input {
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: 3px;
+    padding: 3px 8px; font-family: var(--mono); font-size: 11px; color: var(--text);
+    width: 60px;
+  }
+  .results-section { }
+  .result-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 16px; margin-bottom: 10px;
+    position: relative; animation: fadeIn .3s ease;
+  }
+  .result-card.high { border-left: 3px solid var(--green); }
+  .result-card.mid  { border-left: 3px solid var(--amber); }
+  .result-card.low  { border-left: 3px solid var(--border2); }
+  .result-score { position: absolute; top: 14px; right: 16px; font-size: 11px; color: var(--text2); }
+  .result-text { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 10px; }
+  .result-footer { display: flex; gap: 8px; align-items: center; }
+  .result-id { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+  /* ── REMEMBER PANEL ── */
+  .remember-panel {
+    position: fixed; right: 0; top: 48px; bottom: 0; width: 380px;
+    background: var(--bg2); border-left: 1px solid var(--border);
+    transform: translateX(100%); transition: transform .25s ease;
+    z-index: 50; display: flex; flex-direction: column;
+  }
+  .remember-panel.open { transform: translateX(0); }
+  .panel-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-family: var(--display); font-size: 16px; font-weight: 600; }
+  .close-btn { cursor: pointer; font-size: 20px; color: var(--text3); background: none; border: none; }
+  .close-btn:hover { color: var(--text); }
+  .panel-body { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+  .field-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .field-textarea {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 4px; padding: 12px; font-family: var(--mono); font-size: 12px;
+    color: var(--text); resize: vertical; min-height: 120px; outline: none;
+    transition: border-color .15s;
+  }
+  .field-textarea:focus { border-color: var(--green-mid); }
+  .field-input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 4px; padding: 8px 12px; font-family: var(--mono); font-size: 12px;
+    color: var(--text); outline: none; transition: border-color .15s;
+  }
+  .field-input:focus { border-color: var(--green-mid); }
+  .confidence-row { display: flex; align-items: center; gap: 12px; }
+  .confidence-slider { flex: 1; accent-color: var(--green); }
+  .confidence-val { font-size: 12px; color: var(--green); min-width: 28px; text-align: right; }
+  .panel-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+
+  /* ── ACTIVITY FEED ── */
+  .activity-log {
+    position: fixed; bottom: 0; left: 220px; right: 0;
+    height: 32px; background: var(--bg2); border-top: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 20px; gap: 16px;
+    font-size: 11px; color: var(--text3); overflow: hidden;
+    z-index: 5;
+  }
+  .activity-item { white-space: nowrap; animation: slideIn .4s ease; }
+  @keyframes slideIn { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+  .act-green { color: var(--green); }
+  .act-sep { color: var(--border2); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 44px; right: 24px;
+    background: var(--bg2); border: 1px solid var(--border2);
+    padding: 10px 16px; border-radius: 5px; font-size: 12px;
+    display: flex; align-items: center; gap: 8px;
+    transform: translateY(20px); opacity: 0;
+    transition: all .25s ease; pointer-events: none; z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { color: var(--green); font-size: 14px; }
+
+  /* ── SETTINGS PAGE ── */
+  .settings-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
+  .settings-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-family: var(--display); font-size: 14px; font-weight: 600; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-key { font-size: 12px; color: var(--text2); }
+  .settings-val { font-size: 12px; color: var(--text); font-family: var(--mono); }
+  .api-key-row { display: flex; align-items: center; gap: 8px; }
+  .api-key-mask { font-family: var(--mono); font-size: 12px; color: var(--text2); background: var(--bg3); padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border2); }
+  .copy-key-btn { font-size: 10px; padding: 4px 8px; }
+
+  /* ── EMPTY STATE ── */
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; color: var(--text3); gap: 12px; }
+  .empty-icon { font-size: 36px; }
+  .empty-text { font-size: 13px; color: var(--text3); }
+  .empty-cta { font-size: 12px; color: var(--green); cursor: pointer; }
+  .empty-cta:hover { text-decoration: underline; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .entry-row, .entry-header { grid-template-columns: 1fr 90px 70px 44px; }
+    .entry-num, .entry-date { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-mark">CM</div>
+      <span class="logo-name">ContextMesh</span>
+    </div>
+    <div class="topbar-center">
+      <div class="status-dot"></div>
+      <span class="status-text">api.contextmesh.dev — all systems nominal</span>
+    </div>
+    <div class="topbar-right">
+      <span class="workspace-id" id="ws-id">ws_a4f9bc</span>
+      <span class="plan-badge">team</span>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Workspace</div>
+      <div class="nav-item active" onclick="showPage('feed', this)">
+        <span class="nav-icon">◈</span> Memory Feed
+        <span class="nav-count" id="nav-count">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('query', this)">
+        <span class="nav-icon">⌕</span> Query
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">System</div>
+      <div class="nav-item" onclick="showPage('settings', this)">
+        <span class="nav-icon">⚙</span> Settings
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="usage-bar-wrap">
+        <div class="usage-label">Queries <span id="usage-q">0 / 1M</span></div>
+        <div class="usage-bar"><div class="usage-fill" id="q-fill" style="width:0%"></div></div>
+      </div>
+      <div class="usage-bar-wrap">
+        <div class="usage-label">Entries <span id="usage-e">0 / 5M</span></div>
+        <div class="usage-bar"><div class="usage-fill" id="e-fill" style="width:0%;background:var(--blue)"></div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- FEED PAGE -->
+    <div id="page-feed">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Memory Feed</div>
+          <div class="page-sub">All stored context · sorted by recency</div>
+        </div>
+        <button class="btn btn-primary" onclick="openPanel()">+ Remember</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Entries</div>
+          <div class="stat-value green" id="stat-total">0</div>
+          <div class="stat-sub">across workspace</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Queries This Month</div>
+          <div class="stat-value" id="stat-queries">0</div>
+          <div class="stat-sub">semantic searches</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Agents</div>
+          <div class="stat-value amber" id="stat-agents">0</div>
+          <div class="stat-sub">writing context</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg. Score</div>
+          <div class="stat-value" id="stat-score">—</div>
+          <div class="stat-sub">confidence</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tag-chip on" onclick="filterTag(this, null)">All</div>
+        <div class="tag-chip" onclick="filterTag(this, 'database')">database</div>
+        <div class="tag-chip" onclick="filterTag(this, 'conventions')">conventions</div>
+        <div class="tag-chip" onclick="filterTag(this, 'people')">people</div>
+        <div class="tag-chip" onclick="filterTag(this, 'infra')">infra</div>
+        <div class="tag-chip" onclick="filterTag(this, 'security')">security</div>
+        <div class="toolbar-right">
+          <span id="entry-count-label" style="font-size:11px;color:var(--text3)">0 entries</span>
+        </div>
+      </div>
+
+      <div class="entry-header">
+        <div class="th">#</div>
+        <div class="th txt">Context</div>
+        <div class="th">Agent</div>
+        <div class="th">Confidence</div>
+        <div class="th">Stored</div>
+        <div class="th"></div>
+      </div>
+
+      <div class="entries-wrap" id="entries-list">
+        <div class="empty" id="empty-state">
+          <div class="empty-icon">◈</div>
+          <div class="empty-text">No context stored yet.</div>
+          <div class="empty-cta" onclick="openPanel()">→ Store your first memory</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUERY PAGE -->
+    <div id="page-query">
+      <div class="page-header" style="margin-bottom:24px">
+        <div>
+          <div class="page-title">Query Memory</div>
+          <div class="page-sub">Semantic search over stored context</div>
+        </div>
+      </div>
+
+      <div class="query-box">
+        <div class="query-input-row">
+          <textarea class="query-input" id="query-input" rows="2" placeholder="what should I know before touching the database?"></textarea>
+          <button class="query-run-btn" onclick="runQuery()">RUN →</button>
+        </div>
+        <div class="query-opts">
+          <span class="q-opt-label">top_k</span>
+          <input class="q-opt-input" id="top-k" type="number" value="5" min="1" max="20">
+          <span class="q-opt-label" style="margin-left:12px">min_score</span>
+          <input class="q-opt-input" id="min-score" type="number" value="0.3" step="0.05" min="0" max="1">
+        </div>
+      </div>
+
+      <div class="results-section" id="query-results"></div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings">
+      <div class="page-header" style="margin-bottom:24px">
+        <div>
+          <div class="page-title">Settings</div>
+          <div class="page-sub">Workspace configuration & API access</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-header">API Configuration</div>
+        <div class="settings-row">
+          <div class="settings-key">API Endpoint</div>
+          <div class="settings-val">https://api.contextmesh.dev</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-key">API Key</div>
+          <div class="api-key-row">
+            <div class="api-key-mask" id="key-display">cm_live_••••••••••••••••</div>
+            <button class="btn copy-key-btn" onclick="copyKey()">Copy</button>
+            <button class="btn copy-key-btn" onclick="toggleKey()">Show</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-key">Workspace ID</div>
+          <div class="settings-val" id="settings-ws-id">ws_a4f9bc</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-header">MCP Integration</div>
+        <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px">
+          <div class="settings-key">Add to <code style="color:var(--green)">~/.cursor/mcp.json</code> or <code style="color:var(--green)">~/.claude/mcp.json</code></div>
+          <pre id="mcp-config" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:14px;font-size:11px;color:var(--text2);width:100%;overflow-x:auto;line-height:1.7">{
+  "contextmesh": {
+    "command": "npx",
+    "args": ["contextmesh-mcp"],
+    "env": {
+      "CM_KEY": "cm_live_••••••••"
+    }
+  }
+}</pre>
+          <button class="btn" onclick="copyMCP()">Copy MCP Config</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-header">Plan</div>
+        <div class="settings-row">
+          <div class="settings-key">Current plan</div>
+          <div class="settings-val"><span class="plan-badge">team</span></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-key">Workspaces</div>
+          <div class="settings-val">1 / 10</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-key">Billing</div>
+          <div><a href="https://contextmesh.dev/billing" style="color:var(--green);font-size:12px;text-decoration:none">Manage billing →</a></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ACTIVITY LOG -->
+<div class="activity-log" id="activity-log">
+  <span class="activity-item act-green">●</span>
+  <span class="activity-item" id="activity-text">System online · waiting for context</span>
+</div>
+
+<!-- REMEMBER PANEL -->
+<div class="remember-panel" id="remember-panel">
+  <div class="panel-header">
+    <div class="panel-title">Store Context</div>
+    <button class="close-btn" onclick="closePanel()">×</button>
+  </div>
+  <div class="panel-body">
+    <div>
+      <div class="field-label">Context *</div>
+      <textarea class="field-textarea" id="r-text" placeholder="e.g. Production DB is postgres 15 on AWS us-east-1. Never run DROP TABLE without a migration file."></textarea>
+    </div>
+    <div>
+      <div class="field-label">Tags (comma-separated)</div>
+      <input class="field-input" id="r-tags" type="text" placeholder="database, infra, security">
+    </div>
+    <div>
+      <div class="field-label">Source Agent</div>
+      <input class="field-input" id="r-agent" type="text" placeholder="cursor, claude, custom">
+    </div>
+    <div>
+      <div class="field-label">Confidence</div>
+      <div class="confidence-row">
+        <input type="range" class="confidence-slider" id="r-conf" min="0" max="1" step="0.05" value="1" oninput="document.getElementById('conf-val').textContent=parseFloat(this.value).toFixed(2)">
+        <span class="confidence-val" id="conf-val">1.00</span>
+      </div>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn btn-primary" style="width:100%" onclick="doRemember()">Store Memory</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <span id="toast-msg">Stored.</span>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const CM_KEY = localStorage.getItem('cm_key') || 'cm_live_demo_key';
+const CM_URL = localStorage.getItem('cm_url') || 'https://api.contextmesh.dev';
+let activeTag = null;
+let allEntries = [];
+let keyVisible = false;
+
+// Demo data — shown when no real API key
+const DEMO_ENTRIES = [
+  { id:'e001', text:'Production database is PostgreSQL 15.3 hosted on AWS us-east-1. Primary instance is db.r6g.2xlarge. Read replicas in eu-west-1 for EU customers.', tags:['database','infra'], source_agent:'cursor', confidence:1.0, created_at: Date.now()/1000 - 86400*2 },
+  { id:'e002', text:'Never run DROP TABLE or TRUNCATE in production without an approved migration file and a backup verified within 24h.', tags:['database','security'], source_agent:'claude', confidence:1.0, created_at: Date.now()/1000 - 86400*3 },
+  { id:'e003', text:'JavaScript: camelCase for all variables and functions. Python: snake_case. No exceptions. ESLint config enforces this.', tags:['conventions'], source_agent:'cursor', confidence:0.95, created_at: Date.now()/1000 - 86400 },
+  { id:'e004', text:'CEO prefers async communication. Send Loom videos for complex issues rather than long Slack threads. She checks messages 9am and 4pm GST.', tags:['people'], source_agent:'claude', confidence:0.85, created_at: Date.now()/1000 - 3600*5 },
+  { id:'e005', text:'API rate limit is 1000 requests/minute per workspace. Burst up to 2000 for 10 seconds. Retry with exponential backoff starting at 200ms.', tags:['infra'], source_agent:'cursor', confidence:1.0, created_at: Date.now()/1000 - 3600*2 },
+  { id:'e006', text:'Stripe webhook endpoint is /api/webhooks/stripe. Secret is in AWS Secrets Manager under prod/stripe/webhook-secret. Never commit to git.', tags:['security','infra'], source_agent:'claude', confidence:1.0, created_at: Date.now()/1000 - 86400*5 },
+  { id:'e007', text:'Tech stack: Next.js 14 (app router), FastAPI, PostgreSQL, Redis, Qdrant, deployed on Vercel + Fly.io. Node 20, Python 3.12.', tags:['infra','conventions'], source_agent:'cursor', confidence:1.0, created_at: Date.now()/1000 - 86400*7 },
+  { id:'e008', text:'CTO reviews all PRs touching payments/ or auth/. Tag him on GitHub: @rafaelcm. Minimum 2 approvals for these paths.', tags:['people','security'], source_agent:'claude', confidence:0.9, created_at: Date.now()/1000 - 86400*1 },
+];
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  allEntries = [...DEMO_ENTRIES];
+  renderEntries();
+  updateStats();
+  updateUsage();
+  logActivity('system', 'Workspace loaded · 8 context entries');
+  animateStats();
+});
+
+// ── Page routing ─────────────────────────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('page-feed').style.display    = name === 'feed'     ? 'flex' : 'none';
+  document.getElementById('page-query').style.display   = name === 'query'    ? 'block' : 'none';
+  document.getElementById('page-settings').style.display= name === 'settings' ? 'block' : 'none';
+}
+
+// ── Entries ───────────────────────────────────────────────────────────────────
+function renderEntries() {
+  const list   = document.getElementById('entries-list');
+  const empty  = document.getElementById('empty-state');
+  const countL = document.getElementById('entry-count-label');
+  const filtered = activeTag ? allEntries.filter(e => e.tags.includes(activeTag)) : allEntries;
+
+  document.getElementById('nav-count').textContent = allEntries.length;
+  countL.textContent = `${filtered.length} entr${filtered.length === 1 ? 'y' : 'ies'}`;
+
+  // Remove existing rows
+  list.querySelectorAll('.entry-row').forEach(r => r.remove());
+  if (empty) empty.style.display = filtered.length ? 'none' : 'flex';
+
+  filtered.forEach((e, i) => {
+    const row = document.createElement('div');
+    row.className = 'entry-row';
+    row.style.animationDelay = `${i * 40}ms`;
+    const score = e.confidence || 1.0;
+    const scoreColor = score >= .85 ? 'var(--green)' : score >= .6 ? 'var(--amber)' : 'var(--text3)';
+    const date  = new Date(e.created_at * 1000);
+    const dateStr = date.toLocaleDateString('en', {month:'short', day:'numeric'});
+    const tags  = (e.tags || []).map(t => `<span class="entry-tag">${t}</span>`).join('');
+    row.innerHTML = `
+      <div class="entry-num">${i + 1}</div>
+      <div class="entry-text">
+        <div class="entry-main">${escHtml(e.text.slice(0,140))}${e.text.length > 140 ? '…' : ''}</div>
+        <div class="entry-meta">${tags}<span class="entry-agent">${e.source_agent || 'unknown'}</span></div>
+      </div>
+      <div class="entry-agent" style="font-size:11px;color:var(--text3)">${e.source_agent || '—'}</div>
+      <div class="score-bar-wrap">
+        <div class="score-bar"><div class="score-fill" style="width:${score*100}%;background:${scoreColor}"></div></div>
+        <span class="score-label">${(score*100).toFixed(0)}%</span>
+      </div>
+      <div class="entry-date">${dateStr}</div>
+      <div class="entry-actions">
+        <div class="del-btn" onclick="deleteEntry('${e.id}', event)" title="Delete">✕</div>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function deleteEntry(id, evt) {
+  evt.stopPropagation();
+  allEntries = allEntries.filter(e => e.id !== id);
+  renderEntries();
+  updateStats();
+  toast('Entry deleted');
+  logActivity('delete', `Removed entry ${id.slice(0,8)}`);
+}
+
+function filterTag(el, tag) {
+  document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  activeTag = tag;
+  renderEntries();
+}
+
+// ── Remember panel ────────────────────────────────────────────────────────────
+function openPanel()  { document.getElementById('remember-panel').classList.add('open'); }
+function closePanel() { document.getElementById('remember-panel').classList.remove('open'); }
+
+function doRemember() {
+  const text  = document.getElementById('r-text').value.trim();
+  if (!text) { toast('Please enter some context', true); return; }
+  const tags  = document.getElementById('r-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const agent = document.getElementById('r-agent').value.trim() || 'dashboard';
+  const conf  = parseFloat(document.getElementById('r-conf').value);
+
+  const entry = {
+    id:           'e' + Math.random().toString(36).slice(2,8),
+    text, tags,
+    source_agent: agent,
+    confidence:   conf,
+    created_at:   Date.now() / 1000,
+  };
+  allEntries.unshift(entry);
+  renderEntries();
+  updateStats();
+  closePanel();
+  toast('Memory stored ✓');
+  logActivity('store', `Stored: "${text.slice(0,50)}…"`);
+  document.getElementById('r-text').value  = '';
+  document.getElementById('r-tags').value  = '';
+  document.getElementById('r-agent').value = '';
+}
+
+// ── Query ─────────────────────────────────────────────────────────────────────
+function runQuery() {
+  const q   = document.getElementById('query-input').value.trim();
+  if (!q) return;
+  const topK = parseInt(document.getElementById('top-k').value) || 5;
+  const res  = document.getElementById('query-results');
+
+  // Simulate semantic search over demo entries
+  const scored = allEntries.map(e => {
+    const qLower = q.toLowerCase();
+    const tLower = e.text.toLowerCase();
+    const overlap = qLower.split(' ').filter(w => w.length > 3 && tLower.includes(w)).length;
+    const tagMatch = (e.tags||[]).some(t => qLower.includes(t)) ? 0.15 : 0;
+    const score = Math.min(0.99, (overlap * 0.18) + tagMatch + (e.confidence * 0.05) + Math.random() * 0.12);
+    return { ...e, score };
+  }).sort((a,b) => b.score - a.score).slice(0, topK).filter(e => e.score > 0.1);
+
+  res.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:16px">Query: <span style="color:var(--text)">"${escHtml(q)}"</span> · ${scored.length} result${scored.length !== 1 ? 's' : ''}</div>`;
+  scored.forEach(r => {
+    const cls  = r.score >= .7 ? 'high' : r.score >= .45 ? 'mid' : 'low';
+    const tags = (r.tags||[]).map(t=>`<span class="entry-tag">${t}</span>`).join('');
+    const card = document.createElement('div');
+    card.className = `result-card ${cls}`;
+    card.innerHTML = `
+      <div class="result-score">score: ${r.score.toFixed(3)}</div>
+      <div class="result-text">${escHtml(r.text)}</div>
+      <div class="result-footer">${tags}<span class="result-id">id: ${r.id}</span></div>`;
+    res.appendChild(card);
+  });
+  if (!scored.length) res.innerHTML += `<div class="empty"><div class="empty-icon">⌕</div><div class="empty-text">No results above threshold.</div></div>`;
+  logActivity('query', `Queried: "${q.slice(0,40)}" → ${scored.length} results`);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.ctrlKey && document.getElementById('page-query').style.display !== 'none') runQuery();
+});
+
+// ── Stats & usage ─────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-total').textContent = allEntries.length;
+  const agents = [...new Set(allEntries.map(e => e.source_agent))].filter(Boolean);
+  document.getElementById('stat-agents').textContent = agents.length;
+  const avgConf = allEntries.length ? (allEntries.reduce((s,e)=>s+(e.confidence||1),0)/allEntries.length) : 0;
+  document.getElementById('stat-score').textContent = allEntries.length ? (avgConf*100).toFixed(0)+'%' : '—';
+}
+
+function updateUsage() {
+  const q  = 18_400, qMax = 1_000_000;
+  const e_ = allEntries.length, eMax = 5_000_000;
+  document.getElementById('usage-q').textContent = `${q.toLocaleString()} / ${(qMax/1e6).toFixed(0)}M`;
+  document.getElementById('usage-e').textContent = `${e_.toLocaleString()} / ${(eMax/1e6).toFixed(0)}M`;
+  setTimeout(() => {
+    document.getElementById('q-fill').style.width = (q/qMax*100).toFixed(2) + '%';
+    document.getElementById('e-fill').style.width = (e_/eMax*100).toFixed(2) + '%';
+  }, 300);
+  document.getElementById('stat-queries').textContent = q.toLocaleString();
+}
+
+function animateStats() {
+  const el = document.getElementById('stat-total');
+  let v = 0, target = allEntries.length;
+  const step = () => { v = Math.min(target, v + 1); el.textContent = v; if (v < target) setTimeout(step, 40); };
+  step();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function toggleKey() {
+  keyVisible = !keyVisible;
+  document.getElementById('key-display').textContent = keyVisible ? CM_KEY : 'cm_live_••••••••••••••••';
+}
+function copyKey() { navigator.clipboard?.writeText(CM_KEY); toast('API key copied'); }
+function copyMCP() {
+  const cfg = `{\n  "contextmesh": {\n    "command": "npx",\n    "args": ["contextmesh-mcp"],\n    "env": { "CM_KEY": "${CM_KEY}" }\n  }\n}`;
+  navigator.clipboard?.writeText(cfg); toast('MCP config copied');
+}
+
+// ── Activity log ──────────────────────────────────────────────────────────────
+const actQueue = [];
+function logActivity(type, msg) {
+  actQueue.push({ type, msg });
+  if (actQueue.length > 1) actQueue.shift();
+  const colors = { store:'var(--green)', query:'var(--blue)', delete:'var(--red)', system:'var(--text2)' };
+  const el = document.getElementById('activity-text');
+  el.style.color = colors[type] || 'var(--text2)';
+  el.textContent = msg;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, err = false) {
+  const t = document.getElementById('toast');
+  const i = t.querySelector('.toast-icon');
+  document.getElementById('toast-msg').textContent = msg;
+  i.textContent = err ? '✕' : '✓';
+  i.style.color = err ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Init page display
+showPage('feed', null);
+document.querySelector('.nav-item').classList.add('active');
+</script>
+</body>
+</html>

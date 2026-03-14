@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContextMesh Docs — API Reference & Guides</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #FAFAF8;
+    --bg2:      #F4F2EE;
+    --bg3:      #EDEBE6;
+    --ink:      #1A1A17;
+    --ink2:     #4A4A44;
+    --ink3:     #8A8A82;
+    --border:   #E2DFD8;
+    --green:    #1A7F5A;
+    --green-bg: #EBF5F0;
+    --blue:     #1A5FA0;
+    --blue-bg:  #EBF2FA;
+    --amber:    #8A5A00;
+    --amber-bg: #FDF6E8;
+    --red:      #A02020;
+    --red-bg:   #FAEEEE;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Instrument Sans', sans-serif;
+    --sidebar-w: 260px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; font-size: 15px; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.65;
+    display: flex; min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--bg2); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-mark {
+    width: 26px; height: 26px; background: var(--ink);
+    border-radius: 5px; display: flex; align-items: center;
+    justify-content: center; font-family: var(--mono);
+    font-size: 11px; color: #C8FF00; font-weight: 500; flex-shrink: 0;
+  }
+  .logo-name { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--ink); }
+  .logo-version { font-size: 11px; color: var(--ink3); font-family: var(--mono); }
+
+  .search-wrap { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .search-input {
+    width: 100%; padding: 7px 12px; font-family: var(--sans); font-size: 13px;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+    color: var(--ink); outline: none;
+  }
+  .search-input:focus { border-color: var(--blue); background: var(--bg); }
+  .search-input::placeholder { color: var(--ink3); }
+
+  .nav-section { padding: 16px 16px 6px; }
+  .nav-heading {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink3); font-family: var(--mono); margin-bottom: 4px;
+  }
+  .nav-item {
+    display: block; padding: 6px 10px; border-radius: 5px;
+    font-size: 13px; color: var(--ink2); cursor: pointer;
+    transition: background .1s, color .1s;
+    border-left: 2px solid transparent; margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--ink); }
+  .nav-item.active { background: var(--blue-bg); color: var(--blue); border-left-color: var(--blue); font-weight: 500; }
+  .nav-badge {
+    float: right; font-size: 9px; font-family: var(--mono);
+    padding: 1px 5px; border-radius: 3px; background: var(--green-bg);
+    color: var(--green); border: 1px solid #C0DDD4;
+  }
+
+  /* ── MAIN ── */
+  .main { flex: 1; max-width: 820px; padding: 0 60px 120px; }
+  .content-header {
+    padding: 40px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 40px;
+  }
+
+  h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 10px; }
+  h2 {
+    font-size: 20px; font-weight: 600; letter-spacing: -0.01em;
+    margin: 48px 0 16px; padding-top: 48px; border-top: 1px solid var(--border);
+    scroll-margin-top: 24px;
+  }
+  h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+  h3 { font-size: 16px; font-weight: 600; margin: 28px 0 12px; }
+  p  { color: var(--ink2); margin-bottom: 16px; line-height: 1.75; }
+  p strong { color: var(--ink); font-weight: 600; }
+
+  /* ── CODE ── */
+  pre {
+    background: var(--ink); color: #C8D8C8;
+    border-radius: 7px; padding: 20px; margin: 16px 0;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.8;
+    overflow-x: auto; position: relative;
+  }
+  code {
+    font-family: var(--mono); font-size: 12.5px;
+    background: var(--bg3); padding: 1px 5px; border-radius: 3px;
+    color: var(--ink); border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; border: none; color: inherit; font-size: inherit; }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    font-family: var(--mono); font-size: 10px; padding: 4px 10px;
+    background: rgba(255,255,255,.08); color: #8A9A8A; border: 1px solid rgba(255,255,255,.1);
+    border-radius: 3px; cursor: pointer; transition: all .15s;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,.15); color: #C8D8C8; }
+
+  /* Syntax colors */
+  .c-dim   { color: #4A5A4A; }
+  .c-green { color: #00CC77; }
+  .c-blue  { color: #4D9FFF; }
+  .c-amber { color: #FFB340; }
+  .c-text  { color: #C8D8C8; }
+  .c-pink  { color: #FF7AC6; }
+
+  /* ── ENDPOINT CARDS ── */
+  .endpoint-card {
+    border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; margin: 20px 0;
+  }
+  .endpoint-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  .method-badge {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 4px; flex-shrink: 0;
+  }
+  .m-post   { background: #EBF5F0; color: #1A7F5A; border: 1px solid #C0DDD4; }
+  .m-delete { background: #FAEEEE; color: #A02020; border: 1px solid #DDBBBB; }
+  .m-get    { background: #EBF2FA; color: #1A5FA0; border: 1px solid #B8CCDD; }
+  .endpoint-path { font-family: var(--mono); font-size: 14px; color: var(--ink); font-weight: 500; }
+  .endpoint-desc { font-size: 13px; color: var(--ink3); margin-left: auto; }
+  .endpoint-body { padding: 18px; }
+
+  /* ── PARAMS TABLE ── */
+  .param-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  .param-table th {
+    text-align: left; padding: 8px 12px;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink3); font-family: var(--mono);
+    border-bottom: 1px solid var(--border); background: var(--bg2);
+  }
+  .param-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .param-table tr:last-child td { border-bottom: none; }
+  .param-name { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+  .param-type { font-family: var(--mono); font-size: 11px; color: var(--blue); }
+  .param-required { font-size: 10px; color: var(--green); font-family: var(--mono); }
+  .param-optional { font-size: 10px; color: var(--ink3); font-family: var(--mono); }
+  .param-desc { color: var(--ink2); line-height: 1.5; }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    display: flex; gap: 12px; padding: 14px 16px;
+    border-radius: 6px; margin: 16px 0; font-size: 13px; line-height: 1.6;
+  }
+  .callout-tip    { background: var(--green-bg); border: 1px solid #C0DDD4; color: var(--green); }
+  .callout-note   { background: var(--blue-bg);  border: 1px solid #B8CCDD; color: var(--blue); }
+  .callout-warn   { background: var(--amber-bg); border: 1px solid #DCC890; color: var(--amber); }
+  .callout-danger { background: var(--red-bg);   border: 1px solid #DDBBBB; color: var(--red); }
+  .callout-icon   { font-size: 16px; flex-shrink: 0; }
+  .callout-body   { color: var(--ink2); }
+  .callout-body strong { color: var(--ink); font-weight: 600; }
+
+  /* ── LANG TABS ── */
+  .lang-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 0; gap: 0; }
+  .lang-tab {
+    padding: 8px 16px; font-size: 12px; font-family: var(--mono);
+    cursor: pointer; color: var(--ink3); border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all .15s; background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .lang-tab:hover { color: var(--ink2); }
+  .lang-tab.on { color: var(--blue); border-bottom-color: var(--blue); }
+  .lang-block { display: none; }
+  .lang-block.on { display: block; }
+  .tabbed-code { border: 1px solid var(--border); border-radius: 7px; overflow: hidden; margin: 16px 0; }
+  .tabbed-code .lang-tabs { background: var(--bg2); padding: 0 8px; }
+  .tabbed-code pre { border-radius: 0; margin: 0; }
+
+  /* ── RESPONSE SCHEMA ── */
+  .response-schema {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px 16px; font-family: var(--mono);
+    font-size: 12px; line-height: 1.9; margin: 12px 0;
+  }
+  .rs-key   { color: var(--blue); }
+  .rs-type  { color: var(--ink3); font-size: 11px; }
+  .rs-val   { color: var(--green); }
+  .rs-desc  { color: var(--ink3); font-size: 11px; }
+
+  /* ── TOC ── */
+  .toc-wrap { padding: 20px 16px; }
+  .toc-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink3); margin-bottom: 8px; font-family: var(--mono); }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main    { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">CM</div>
+    <div>
+      <div class="logo-name">ContextMesh</div>
+      <div class="logo-version">v1.0.0</div>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <input class="search-input" type="text" placeholder="Search docs..." oninput="searchDocs(this.value)">
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-heading">Getting Started</div>
+    <a class="nav-item active" href="#quickstart" onclick="setActive(this)">Quickstart</a>
+    <a class="nav-item" href="#authentication" onclick="setActive(this)">Authentication</a>
+    <a class="nav-item" href="#plans" onclick="setActive(this)">Plans & Limits</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-heading">API Reference</div>
+    <a class="nav-item" href="#remember" onclick="setActive(this)">POST /remember <span class="nav-badge">core</span></a>
+    <a class="nav-item" href="#query" onclick="setActive(this)">POST /query <span class="nav-badge">core</span></a>
+    <a class="nav-item" href="#forget" onclick="setActive(this)">DELETE /forget/:id</a>
+    <a class="nav-item" href="#list" onclick="setActive(this)">GET /list</a>
+    <a class="nav-item" href="#usage" onclick="setActive(this)">GET /usage</a>
+    <a class="nav-item" href="#health" onclick="setActive(this)">GET /health</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-heading">SDKs</div>
+    <a class="nav-item" href="#python-sdk" onclick="setActive(this)">Python SDK</a>
+    <a class="nav-item" href="#js-sdk" onclick="setActive(this)">JavaScript SDK</a>
+    <a class="nav-item" href="#mcp-server" onclick="setActive(this)">MCP Server</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-heading">Guides</div>
+    <a class="nav-item" href="#guide-cursor" onclick="setActive(this)">Cursor integration</a>
+    <a class="nav-item" href="#guide-claude" onclick="setActive(this)">Claude Code integration</a>
+    <a class="nav-item" href="#guide-errors" onclick="setActive(this)">Error handling</a>
+    <a class="nav-item" href="#guide-self-host" onclick="setActive(this)">Self-hosting</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <div class="content-header">
+    <h1>ContextMesh Documentation</h1>
+    <p>Persistent semantic memory for AI agents. Write context from any agent, query it from any other — across tools, sessions, and your whole team.</p>
+    <div class="callout callout-tip">
+      <span class="callout-icon">◈</span>
+      <div class="callout-body"><strong>Base URL:</strong> <code>https://api.contextmesh.dev</code> · All requests require <code>Authorization: Bearer cm_live_...</code></div>
+    </div>
+  </div>
+
+  <!-- QUICKSTART -->
+  <h2 id="quickstart">Quickstart</h2>
+  <p>Get running in under 2 minutes. Get your API key from <a href="https://contextmesh.dev">contextmesh.dev</a>, then:</p>
+
+  <div class="tabbed-code">
+    <div class="lang-tabs">
+      <button class="lang-tab on" onclick="switchTab(this, 'qs-python')">Python</button>
+      <button class="lang-tab"    onclick="switchTab(this, 'qs-js')">JavaScript</button>
+      <button class="lang-tab"    onclick="switchTab(this, 'qs-curl')">cURL</button>
+      <button class="lang-tab"    onclick="switchTab(this, 'qs-mcp')">MCP</button>
+    </div>
+    <div id="qs-python" class="lang-block on">
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-dim"># pip install contextmesh</span>
+<span class="c-pink">from</span> <span class="c-green">contextmesh</span> <span class="c-pink">import</span> <span class="c-text">Mesh</span>
+
+<span class="c-text">mesh</span> = <span class="c-green">Mesh</span>(<span class="c-amber">"cm_live_your_key_here"</span>)
+
+<span class="c-dim"># Store context from any agent</span>
+<span class="c-text">id1</span> = mesh.<span class="c-green">remember</span>(<span class="c-amber">"Prod DB is postgres 15.3, AWS us-east-1"</span>, tags=[<span class="c-amber">"database"</span>])
+<span class="c-text">id2</span> = mesh.<span class="c-green">remember</span>(<span class="c-amber">"Use camelCase for JS, snake_case for Python"</span>, tags=[<span class="c-amber">"conventions"</span>])
+
+<span class="c-dim"># Query it from any other agent — semantic, not keyword</span>
+<span class="c-text">hits</span> = mesh.<span class="c-green">query</span>(<span class="c-amber">"what should I know before touching the database?"</span>)
+<span class="c-pink">for</span> h <span class="c-pink">in</span> hits:
+    <span class="c-blue">print</span>(<span class="c-text">h</span>[<span class="c-amber">"score"</span>], <span class="c-text">h</span>[<span class="c-amber">"text"</span>])
+<span class="c-dim"># → 0.94  Prod DB is postgres 15.3, AWS us-east-1</span></pre>
+    </div>
+    <div id="qs-js" class="lang-block">
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-dim">// npm install contextmesh</span>
+<span class="c-pink">import</span> { <span class="c-green">Mesh</span> } <span class="c-pink">from</span> <span class="c-amber">"contextmesh"</span>;
+
+<span class="c-pink">const</span> mesh = <span class="c-pink">new</span> <span class="c-green">Mesh</span>(<span class="c-amber">"cm_live_your_key_here"</span>);
+
+<span class="c-pink">await</span> mesh.<span class="c-green">remember</span>(<span class="c-amber">"Prod DB is postgres 15.3, AWS us-east-1"</span>, { tags: [<span class="c-amber">"database"</span>] });
+
+<span class="c-pink">const</span> hits = <span class="c-pink">await</span> mesh.<span class="c-green">query</span>(<span class="c-amber">"what should I know about the database?"</span>);
+console.<span class="c-blue">log</span>(hits[<span class="c-amber">0</span>].text, hits[<span class="c-amber">0</span>].score);</pre>
+    </div>
+    <div id="qs-curl" class="lang-block">
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-dim"># Store context</span>
+curl -X POST https://api.contextmesh.dev/remember \
+  -H <span class="c-amber">"Authorization: Bearer cm_live_your_key"</span> \
+  -H <span class="c-amber">"Content-Type: application/json"</span> \
+  -d <span class="c-amber">'{"text":"Prod DB is postgres 15.3","tags":["database"]}'</span>
+
+<span class="c-dim"># Query it</span>
+curl -X POST https://api.contextmesh.dev/query \
+  -H <span class="c-amber">"Authorization: Bearer cm_live_your_key"</span> \
+  -H <span class="c-amber">"Content-Type: application/json"</span> \
+  -d <span class="c-amber">'{"q":"database info?","top_k":5}'</span></pre>
+    </div>
+    <div id="qs-mcp" class="lang-block">
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-dim">// ~/.cursor/mcp.json  OR  ~/.claude/mcp.json</span>
+{
+  <span class="c-green">"contextmesh"</span>: {
+    <span class="c-text">"command"</span>: <span class="c-amber">"npx"</span>,
+    <span class="c-text">"args"</span>:   [<span class="c-amber">"contextmesh-mcp"</span>],
+    <span class="c-text">"env"</span>:    { <span class="c-green">"CM_KEY"</span>: <span class="c-amber">"cm_live_your_key"</span> }
+  }
+}
+
+<span class="c-dim">// Claude/Cursor now has tools:
+// remember(text, tags?) — store context
+// recall(query, top_k?) — semantic search
+// forget(id)            — delete entry
+// list_context()        — browse all</span></pre>
+    </div>
+  </div>
+
+  <!-- AUTH -->
+  <h2 id="authentication">Authentication</h2>
+  <p>All requests must include your API key in the <code>Authorization</code> header:</p>
+  <pre><code>Authorization: Bearer cm_live_your_key_here</code></pre>
+  <p>API keys start with <code>cm_live_</code> for production and <code>cm_test_</code> for test environments. Get your key at <a href="https://contextmesh.dev">contextmesh.dev</a>.</p>
+  <div class="callout callout-danger">
+    <span class="callout-icon">⚠</span>
+    <div class="callout-body"><strong>Never commit your API key.</strong> Use environment variables: <code>export CM_KEY=cm_live_...</code></div>
+  </div>
+
+  <!-- PLANS -->
+  <h2 id="plans">Plans & Rate Limits</h2>
+  <table class="param-table" style="margin-top:16px">
+    <thead><tr><th>Plan</th><th>Price</th><th>Workspaces</th><th>Entries</th><th>Queries/mo</th><th>Rate (rpm)</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">free</td>  <td>$0</td>   <td>1</td>  <td>10k</td> <td>1k</td>  <td>20</td></tr>
+      <tr><td class="param-name">solo</td>  <td>$19/mo</td><td>1</td> <td>500k</td><td>100k</td><td>100</td></tr>
+      <tr><td class="param-name">team</td>  <td>$99/mo</td><td>10</td><td>5M</td>  <td>1M</td>  <td>500</td></tr>
+      <tr><td class="param-name">enterprise</td><td>$599/mo</td><td>∞</td><td>∞</td><td>∞</td><td>2000</td></tr>
+    </tbody>
+  </table>
+  <p>Rate limit errors return <code>429</code> with a <code>detail</code> field explaining which limit was hit. Retry after 60 seconds or upgrade your plan.</p>
+
+  <!-- ENDPOINTS -->
+  <h2 id="remember">POST /remember</h2>
+  <p>Store a piece of context. The text is embedded into a 1536-dimension vector and stored with your metadata.</p>
+
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method-badge m-post">POST</span>
+      <span class="endpoint-path">/remember</span>
+      <span class="endpoint-desc">Store context</span>
+    </div>
+    <div class="endpoint-body">
+      <h3>Request body</h3>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">text</td><td class="param-type">string</td><td class="param-required">required</td><td class="param-desc">The context to store. Max 10,000 characters.</td></tr>
+          <tr><td class="param-name">tags</td><td class="param-type">string[]</td><td class="param-optional">optional</td><td class="param-desc">Tags for filtering. e.g. <code>["database", "infra"]</code></td></tr>
+          <tr><td class="param-name">source_agent</td><td class="param-type">string</td><td class="param-optional">optional</td><td class="param-desc">Which agent wrote this. e.g. <code>"cursor"</code>, <code>"claude"</code></td></tr>
+          <tr><td class="param-name">confidence</td><td class="param-type">float</td><td class="param-optional">optional</td><td class="param-desc">Certainty score 0.0–1.0. Default <code>1.0</code></td></tr>
+        </tbody>
+      </table>
+      <h3>Response</h3>
+      <div class="response-schema">
+        {<br>
+        &nbsp;&nbsp;<span class="rs-key">"id"</span>:     <span class="rs-val">"e1a2b3c4-..."</span>  <span class="rs-desc">// entry ID — use to delete later</span><br>
+        &nbsp;&nbsp;<span class="rs-key">"status"</span>: <span class="rs-val">"stored"</span><br>
+        &nbsp;&nbsp;<span class="rs-key">"chars"</span>:  <span class="rs-val">42</span>  <span class="rs-desc">// character count of stored text</span><br>
+        &nbsp;&nbsp;<span class="rs-key">"tags"</span>:   <span class="rs-val">["database"]</span><br>
+        }
+      </div>
+    </div>
+  </div>
+
+  <h2 id="query">POST /query</h2>
+  <p>Semantic search over your workspace context. Returns the top-K most relevant entries ranked by cosine similarity score.</p>
+
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method-badge m-post">POST</span>
+      <span class="endpoint-path">/query</span>
+      <span class="endpoint-desc">Semantic search</span>
+    </div>
+    <div class="endpoint-body">
+      <h3>Request body</h3>
+      <table class="param-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">q</td><td class="param-type">string</td><td class="param-required">required</td><td class="param-desc">Natural language query. Max 2,000 characters.</td></tr>
+          <tr><td class="param-name">top_k</td><td class="param-type">int</td><td class="param-optional">optional</td><td class="param-desc">Max results. Default <code>5</code>, max <code>20</code>.</td></tr>
+          <tr><td class="param-name">tag_filter</td><td class="param-type">string</td><td class="param-optional">optional</td><td class="param-desc">Only return entries with this tag.</td></tr>
+          <tr><td class="param-name">min_score</td><td class="param-type">float</td><td class="param-optional">optional</td><td class="param-desc">Minimum similarity threshold 0.0–1.0. Default <code>0.3</code></td></tr>
+        </tbody>
+      </table>
+      <h3>Response</h3>
+      <div class="response-schema">
+        {<br>
+        &nbsp;&nbsp;<span class="rs-key">"query"</span>:   <span class="rs-val">"what do we know about the database?"</span><br>
+        &nbsp;&nbsp;<span class="rs-key">"count"</span>:   <span class="rs-val">2</span><br>
+        &nbsp;&nbsp;<span class="rs-key">"results"</span>: [<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;{<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rs-key">"id"</span>:           <span class="rs-val">"e1a2b3c4-..."</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rs-key">"text"</span>:         <span class="rs-val">"Prod DB is postgres 15.3..."</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rs-key">"score"</span>:        <span class="rs-val">0.9312</span>  <span class="rs-desc">// cosine similarity 0–1</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rs-key">"tags"</span>:         <span class="rs-val">["database", "infra"]</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rs-key">"source_agent"</span>: <span class="rs-val">"cursor"</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="rs-key">"created_at"</span>:   <span class="rs-val">1700000000</span>  <span class="rs-desc">// unix timestamp</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+        &nbsp;&nbsp;]<br>
+        }
+      </div>
+    </div>
+  </div>
+
+  <h2 id="forget">DELETE /forget/:id</h2>
+  <p>Remove a specific context entry by its ID. Get the ID from <code>/remember</code> or <code>/list</code>.</p>
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method-badge m-delete">DELETE</span>
+      <span class="endpoint-path">/forget/:id</span>
+      <span class="endpoint-desc">Delete entry</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="margin:0">Returns <code>{"id":"...","status":"deleted"}</code> on success. Returns <code>404</code> if not found.</p>
+    </div>
+  </div>
+
+  <h2 id="list">GET /list</h2>
+  <p>Browse all stored entries in your workspace. Paginate with <code>limit</code> and <code>offset</code>. Filter by tag with <code>tag_filter</code>.</p>
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span class="method-badge m-get">GET</span>
+      <span class="endpoint-path">/list</span>
+      <span class="endpoint-desc">Browse entries</span>
+    </div>
+    <div class="endpoint-body">
+      <table class="param-table">
+        <thead><tr><th>Query param</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">limit</td><td class="param-type">int</td><td><code>50</code></td><td class="param-desc">Max entries (1–200).</td></tr>
+          <tr><td class="param-name">offset</td><td class="param-type">int</td><td><code>0</code></td><td class="param-desc">Skip N entries for pagination.</td></tr>
+          <tr><td class="param-name">tag_filter</td><td class="param-type">string</td><td>—</td><td class="param-desc">Only return entries with this tag.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 id="usage">GET /usage</h2>
+  <p>Returns this month's usage stats for your workspace and plan limits.</p>
+
+  <h2 id="health">GET /health</h2>
+  <p>Liveness check. Returns <code>{"status":"ok","service":"contextmesh","ts":...}</code>. No auth required.</p>
+
+  <!-- PYTHON SDK -->
+  <h2 id="python-sdk">Python SDK</h2>
+  <pre><code>pip install contextmesh</code></pre>
+  <h3>Sync client — <code>Mesh</code></h3>
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-pink">from</span> <span class="c-green">contextmesh</span> <span class="c-pink">import</span> <span class="c-text">Mesh, ContextMeshError</span>
+<span class="c-pink">from</span> <span class="c-green">contextmesh._errors</span> <span class="c-pink">import</span> <span class="c-text">AuthError, RateLimitError</span>
+
+mesh = <span class="c-green">Mesh</span>(<span class="c-amber">"cm_live_..."</span>)
+
+<span class="c-dim"># remember(text, tags=[], source_agent=None, confidence=1.0) → str</span>
+entry_id = mesh.<span class="c-green">remember</span>(<span class="c-amber">"prod DB postgres 15"</span>, tags=[<span class="c-amber">"database"</span>])
+
+<span class="c-dim"># query(q, top_k=5, tag=None, min_score=0.3) → list[dict]</span>
+hits = mesh.<span class="c-green">query</span>(<span class="c-amber">"database?"</span>, top_k=<span class="c-blue">3</span>)
+
+<span class="c-dim"># forget(entry_id) → bool</span>
+mesh.<span class="c-green">forget</span>(entry_id)
+
+<span class="c-dim"># list(limit=50, offset=0, tag=None) → dict</span>
+result = mesh.<span class="c-green">list</span>(tag=<span class="c-amber">"database"</span>)
+
+<span class="c-dim"># usage() → dict</span>
+u = mesh.<span class="c-green">usage</span>()
+
+<span class="c-dim"># remember_many(items) → list[str]</span>
+ids = mesh.<span class="c-green">remember_many</span>([<span class="c-amber">"entry one"</span>, <span class="c-amber">"entry two"</span>])</pre>
+
+  <h3>Async client — <code>AsyncMesh</code></h3>
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-pink">from</span> <span class="c-green">contextmesh</span> <span class="c-pink">import</span> <span class="c-text">AsyncMesh</span>
+
+<span class="c-pink">async def</span> <span class="c-green">main</span>():
+    mesh = <span class="c-green">AsyncMesh</span>(<span class="c-amber">"cm_live_..."</span>)
+    <span class="c-pink">await</span> mesh.<span class="c-green">remember</span>(<span class="c-amber">"API rate limit is 1000 rpm"</span>)
+    hits = <span class="c-pink">await</span> mesh.<span class="c-green">query</span>(<span class="c-amber">"rate limits?"</span>)
+    ids  = <span class="c-pink">await</span> mesh.<span class="c-green">remember_many</span>([<span class="c-amber">"a"</span>, <span class="c-amber">"b"</span>, <span class="c-amber">"c"</span>])  <span class="c-dim"># concurrent</span></pre>
+
+  <!-- JS SDK -->
+  <h2 id="js-sdk">JavaScript SDK</h2>
+  <pre><code>npm install contextmesh</code></pre>
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-dim">// ESM</span>
+<span class="c-pink">import</span> { <span class="c-green">Mesh</span> } <span class="c-pink">from</span> <span class="c-amber">"contextmesh"</span>;
+
+<span class="c-dim">// CommonJS</span>
+<span class="c-pink">const</span> { <span class="c-green">Mesh</span> } = <span class="c-blue">require</span>(<span class="c-amber">"contextmesh"</span>);
+
+<span class="c-pink">const</span> mesh = <span class="c-pink">new</span> <span class="c-green">Mesh</span>(<span class="c-amber">"cm_live_..."</span>);
+
+<span class="c-pink">const</span> id   = <span class="c-pink">await</span> mesh.<span class="c-green">remember</span>(<span class="c-amber">"text"</span>, { tags: [<span class="c-amber">"database"</span>] });
+<span class="c-pink">const</span> hits = <span class="c-pink">await</span> mesh.<span class="c-green">query</span>(<span class="c-amber">"database?"</span>, { topK: <span class="c-blue">5</span> });
+<span class="c-pink">await</span> mesh.<span class="c-green">forget</span>(id);
+<span class="c-pink">const</span> list = <span class="c-pink">await</span> mesh.<span class="c-green">list</span>({ limit: <span class="c-blue">20</span>, tag: <span class="c-amber">"database"</span> });
+<span class="c-pink">const</span> ids  = <span class="c-pink">await</span> mesh.<span class="c-green">rememberMany</span>([<span class="c-amber">"a"</span>, <span class="c-amber">"b"</span>]);</pre>
+
+  <!-- MCP SERVER -->
+  <h2 id="mcp-server">MCP Server</h2>
+  <p>The MCP server exposes ContextMesh as a Model Context Protocol server, so any compatible AI tool can use it natively without writing any integration code.</p>
+  <div class="callout callout-note">
+    <span class="callout-icon">ℹ</span>
+    <div class="callout-body"><strong>Python required.</strong> The MCP server runs as a Python process. You need Python 3.10+ installed.</div>
+  </div>
+
+  <h3>Tools exposed</h3>
+  <table class="param-table">
+    <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">remember</td><td class="param-desc">Store context. Args: <code>text</code> (required), <code>tags</code>, <code>confidence</code></td></tr>
+      <tr><td class="param-name">recall</td><td class="param-desc">Semantic search. Args: <code>query</code> (required), <code>top_k</code>, <code>tag</code></td></tr>
+      <tr><td class="param-name">forget</td><td class="param-desc">Delete by ID. Args: <code>id</code> (required)</td></tr>
+      <tr><td class="param-name">list_context</td><td class="param-desc">Browse stored entries. Args: <code>limit</code>, <code>tag</code></td></tr>
+    </tbody>
+  </table>
+
+  <!-- GUIDES -->
+  <h2 id="guide-cursor">Guide: Cursor Integration</h2>
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-dim">// 1. Install</span>
+npm install -g contextmesh-mcp   <span class="c-dim">// or use npx (no install)</span>
+
+<span class="c-dim">// 2. Add to ~/.cursor/mcp.json</span>
+{
+  <span class="c-green">"contextmesh"</span>: {
+    <span class="c-text">"command"</span>: <span class="c-amber">"npx"</span>,
+    <span class="c-text">"args"</span>:   [<span class="c-amber">"contextmesh-mcp"</span>],
+    <span class="c-text">"env"</span>:    { <span class="c-green">"CM_KEY"</span>: <span class="c-amber">"cm_live_..."</span> }
+  }
+}
+
+<span class="c-dim">// 3. Restart Cursor. The agent now has remember/recall tools.</span></pre>
+
+  <h2 id="guide-claude">Guide: Claude Code Integration</h2>
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button"><span class="c-dim"># Add to ~/.claude/mcp.json (same format as Cursor)</span>
+{
+  <span class="c-green">"contextmesh"</span>: {
+    <span class="c-text">"command"</span>: <span class="c-amber">"npx"</span>,
+    <span class="c-text">"args"</span>:   [<span class="c-amber">"contextmesh-mcp"</span>],
+    <span class="c-text">"env"</span>:    { <span class="c-green">"CM_KEY"</span>: <span class="c-amber">"cm_live_..."</span> }
+  }
+}</pre>
+
+  <h2 id="guide-errors">Error Handling</h2>
+  <table class="param-table">
+    <thead><tr><th>Status</th><th>Error</th><th>Cause</th></tr></thead>
+    <tbody>
+      <tr><td class="param-type">401</td><td class="param-name">AuthError</td><td class="param-desc">Invalid or revoked API key</td></tr>
+      <tr><td class="param-type">404</td><td class="param-name">NotFoundError</td><td class="param-desc">Entry ID not found in this workspace</td></tr>
+      <tr><td class="param-type">422</td><td class="param-name">ValidationError</td><td class="param-desc">Missing required field or invalid value</td></tr>
+      <tr><td class="param-type">429</td><td class="param-name">RateLimitError</td><td class="param-desc">Rate per minute or monthly quota exceeded</td></tr>
+      <tr><td class="param-type">500</td><td class="param-name">APIError</td><td class="param-desc">Internal server error — contact support</td></tr>
+    </tbody>
+  </table>
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><span class="c-pink">from</span> <span class="c-green">contextmesh._errors</span> <span class="c-pink">import</span> <span class="c-text">AuthError, RateLimitError, ContextMeshError</span>
+
+<span class="c-pink">try</span>:
+    mesh.<span class="c-green">remember</span>(<span class="c-amber">"test"</span>)
+<span class="c-pink">except</span> <span class="c-text">AuthError</span>:
+    <span class="c-blue">print</span>(<span class="c-amber">"Check your API key"</span>)
+<span class="c-pink">except</span> <span class="c-text">RateLimitError</span>:
+    <span class="c-blue">print</span>(<span class="c-amber">"Quota hit — upgrade or retry in 60s"</span>)
+<span class="c-pink">except</span> <span class="c-text">ContextMeshError</span> <span class="c-pink">as</span> e:
+    <span class="c-blue">print</span>(<span class="c-text">e</span>.status_code, <span class="c-blue">str</span>(<span class="c-text">e</span>))</pre>
+
+  <h2 id="guide-self-host">Self-Hosting</h2>
+<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button"><span class="c-dim"># Clone and run locally</span>
+git clone https://github.com/contextmesh/contextmesh
+cd contextmesh/infra
+
+export OPENAI_API_KEY=sk-...
+docker-compose up
+
+<span class="c-dim"># Generate a dev key</span>
+curl -X POST "http://localhost:8000/dev/generate-key?workspace_id=myteam&plan=team"
+
+<span class="c-dim"># Point the SDK at localhost</span>
+mesh = Mesh(<span class="c-amber">"cm_live_..."</span>, base_url=<span class="c-amber">"http://localhost:8000"</span>)</pre>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">△</span>
+    <div class="callout-body"><strong>OpenAI key required for self-hosting.</strong> The embedder uses <code>text-embedding-ada-002</code>. Without a key it falls back to a deterministic hash-based embedder that is NOT semantically meaningful — queries won't return relevant results.</div>
+  </div>
+
+</main>
+
+<script>
+function setActive(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function switchTab(btn, id) {
+  const wrap = btn.closest('.tabbed-code');
+  wrap.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('on'));
+  wrap.querySelectorAll('.lang-block').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById(id).classList.add('on');
+}
+
+function copyCode(btn) {
+  const code = btn.parentElement.textContent.replace('Copy', '').trim();
+  navigator.clipboard?.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1800);
+  });
+}
+
+function searchDocs(q) {
+  if (!q) { document.querySelectorAll('.nav-item').forEach(n => n.style.display = ''); return; }
+  const lq = q.toLowerCase();
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.style.display = n.textContent.toLowerCase().includes(lq) ? '' : 'none';
+  });
+}
+
+// Highlight active section on scroll
+const sections = document.querySelectorAll('h2[id]');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const link = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -80% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

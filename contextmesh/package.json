@@ -1,0 +1,53 @@
+{
+  "name": "contextmesh-mcp",
+  "version": "1.0.0",
+  "description": "ContextMesh MCP server — persistent semantic memory for AI agents (Claude, Cursor, Cline, etc.)",
+  "author": "ContextMesh <hello@contextmesh.dev>",
+  "license": "MIT",
+  "homepage": "https://contextmesh.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/contextmesh/contextmesh-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/contextmesh/contextmesh-mcp/issues"
+  },
+  "keywords": [
+    "mcp", "model-context-protocol", "ai", "memory", "context",
+    "agents", "claude", "cursor", "cline", "vector", "embeddings",
+    "semantic-search", "llm", "persistent-memory"
+  ],
+  "bin": {
+    "contextmesh-mcp": "./bin/contextmesh-mcp.js"
+  },
+  "main": "./sdk/contextmesh.js",
+  "exports": {
+    ".": {
+      "import": "./sdk/contextmesh.mjs",
+      "require": "./sdk/contextmesh.js"
+    }
+  },
+  "files": [
+    "bin/",
+    "sdk/",
+    "mcp_server.py",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start":          "node bin/contextmesh-mcp.js",
+    "test":           "node --test tests/",
+    "prepublishOnly": "npm run test",
+    "postversion":    "git push && git push --tags"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
