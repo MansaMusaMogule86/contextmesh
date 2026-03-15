@@ -3,7 +3,7 @@ primary_region = "ams"
 
 [build]
   dockerfile    = "api/Dockerfile"
-  build-context = "api"
+  build-context = "."
 
 [env]
   PORT            = "8080"

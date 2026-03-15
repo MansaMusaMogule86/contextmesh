@@ -17,7 +17,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from vector_store import VectorStore
@@ -84,6 +85,29 @@ class QueryRequest(BaseModel):
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "contextmesh", "ts": int(time.time())}
+
+
+# ── Landing page ──────────────────────────────────────────────────────────────
+
+_LANDING_DIR = os.path.join(os.path.dirname(__file__), "landing")
+
+@app.get("/", include_in_schema=False)
+async def root():
+    index = os.path.join(_LANDING_DIR, "index.html")
+    if os.path.exists(index):
+        return FileResponse(index)
+    return {"status": "ok", "service": "contextmesh"}
+
+@app.get("/legal/{page}", include_in_schema=False)
+async def legal(page: str):
+    path = os.path.join(_LANDING_DIR, "legal", page)
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="Not found")
+
+# Mount landing static assets (CSS, JS, images if any)
+if os.path.exists(_LANDING_DIR):
+    app.mount("/landing", StaticFiles(directory=_LANDING_DIR), name="landing")
 
 
 @app.post("/remember")
