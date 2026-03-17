@@ -255,4 +255,57 @@ if sys.platform == "win32":
 else:
     async def async_stdin():
         loop   = asyncio.get_event_loop()
-        reader = as
+        reader = asyncio.StreamReader()
+        await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            yield line.decode()
+
+
+if __name__ == "__main__":
+    if sys.platform == "win32":
+        # Synchronous event loop for Windows
+        async def main_sync():
+            for line in sync_stdin():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    msg = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                method = msg.get("method", "")
+                id_    = msg.get("id")
+                params = msg.get("params", {})
+
+                if method == "initialize":
+                    write(mcp_response(id_, {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities":    {"tools": {}},
+                        "serverInfo":      {"name": "contextmesh", "version": "1.0.0"},
+                    }))
+
+                elif method == "tools/list":
+                    write(mcp_response(id_, {"tools": TOOLS}))
+
+                elif method == "tools/call":
+                    tool_name = params.get("name")
+                    tool_args = params.get("arguments", {})
+                    result    = asyncio.run(execute_tool(tool_name, tool_args))
+                    write(mcp_response(id_, {
+                        "content": [{"type": "text", "text": result}],
+                        "isError": result.startswith("ERROR") or result.startswith("API error"),
+                    }))
+
+                elif method == "notifications/initialized":
+                    pass  # no response needed
+
+                else:
+                    if id_ is not None:
+                        write(mcp_error(id_, -32601, f"Method not found: {method}"))
+        main_sync()
+    else:
+        asyncio.run(main())
