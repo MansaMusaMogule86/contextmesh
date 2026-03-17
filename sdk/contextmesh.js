@@ -12,28 +12,25 @@
 const DEFAULT_BASE = "https://api.contextmesh.dev";
 
 export class ContextMeshError extends Error {
-  constructor(message, public statusCode) {
+  constructor(message, statusCode) {
     super(message);
     this.name = "ContextMeshError";
+    this.statusCode = statusCode;
   }
 }
 
 export class Mesh {
-  private key: string;
-  private base: string;
-  private headers: Record<string, string>;
-
-  constructor(apiKey: string, baseUrl: string = DEFAULT_BASE) {
+  constructor(apiKey, baseUrl) {
     if (!apiKey) throw new ContextMeshError("apiKey is required. Get one at https://contextmesh.dev", 0);
     this.key     = apiKey;
-    this.base    = baseUrl.replace(/\/$/, "");
+    this.base    = (baseUrl || DEFAULT_BASE).replace(/\/$/, "");
     this.headers = {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     };
   }
 
-  private async _fetch(method: string, path: string, body?: object, params?: Record<string, string>): Promise<any> {
+  async _fetch(method, path, body, params) {
     let url = `${this.base}${path}`;
     if (params) {
       const qs = new URLSearchParams(params).toString();
@@ -62,10 +59,7 @@ export class Mesh {
    * const id = await mesh.remember("API rate limit is 1000 req/min");
    * const id = await mesh.remember("Use camelCase for JS", { tags: ["conventions"] });
    */
-  async remember(
-    text: string,
-    opts: { tags?: string[]; sourceAgent?: string; confidence?: number } = {}
-  ): Promise<string> {
+  async remember(text, opts = {}) {
     const result = await this._fetch("POST", "/remember", {
       text,
       tags:         opts.tags        ?? [],
@@ -81,10 +75,7 @@ export class Mesh {
    * const hits = await mesh.query("what do we know about our database?");
    * hits.forEach(h => console.log(h.text, h.score));
    */
-  async query(
-    q: string,
-    opts: { topK?: number; tag?: string; minScore?: number } = {}
-  ): Promise<Array<{ id: string; text: string; score: number; tags: string[]; source_agent: string | null; created_at: number }>> {
+  async query(q, opts = {}) {
     const result = await this._fetch("POST", "/query", {
       q,
       top_k:      opts.topK     ?? 5,
@@ -97,7 +88,7 @@ export class Mesh {
   /**
    * Delete a context entry by ID.
    */
-  async forget(entryId: string): Promise<boolean> {
+  async forget(entryId) {
     await this._fetch("DELETE", `/forget/${entryId}`);
     return true;
   }
@@ -105,11 +96,8 @@ export class Mesh {
   /**
    * Browse stored entries.
    */
-  async list(opts: { limit?: number; offset?: number; tag?: string } = {}): Promise<{
-    total: number;
-    entries: Array<{ id: string; text: string; tags: string[]; created_at: number }>;
-  }> {
-    const params: Record<string, string> = {
+  async list(opts = {}) {
+    const params = {
       limit:  String(opts.limit  ?? 50),
       offset: String(opts.offset ?? 0),
     };
@@ -120,22 +108,14 @@ export class Mesh {
   /**
    * Check plan usage for this month.
    */
-  async usage(): Promise<{
-    plan: string;
-    queries_used: number;
-    queries_limit: number;
-    entries_stored: number;
-    entries_limit: number;
-  }> {
+  async usage() {
     return this._fetch("GET", "/usage");
   }
 
   /**
    * Bulk store multiple items.
    */
-  async rememberMany(
-    items: Array<string | { text: string; tags?: string[]; sourceAgent?: string }>
-  ): Promise<string[]> {
+  async rememberMany(items) {
     return Promise.all(
       items.map(item =>
         typeof item === "string" ? this.remember(item) : this.remember(item.text, item)
