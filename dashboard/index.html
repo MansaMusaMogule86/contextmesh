@@ -130,8 +130,10 @@
   .main { overflow: hidden; display: flex; flex-direction: column; background: var(--bg); }
 
   /* ── PAGE: FEED ── */
-  #page-feed { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-  #page-query, #page-memory, #page-settings { flex: 1; overflow-y: auto; padding: 24px; display: none; }
+  #page-feed    { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  #page-query   { flex: 1; overflow-y: auto; padding: 24px; display: none; flex-direction: column; }
+  #page-team    { flex: 1; overflow-y: auto; padding: 24px; display: none; flex-direction: column; }
+  #page-settings{ flex: 1; overflow-y: auto; padding: 24px; display: none; flex-direction: column; }
 
   .page-header {
     padding: 20px 24px 16px;
@@ -355,7 +357,6 @@
   .empty-cta:hover { text-decoration: underline; }
 
   /* ── TEAM PAGE ── */
-  #page-team { flex: 1; overflow-y: auto; padding: 24px; display: none; }
   .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
   @media (max-width: 800px) { .team-grid { grid-template-columns: 1fr; } }
 
@@ -828,16 +829,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ── Page routing ─────────────────────────────────────────────────────────────
 function showPage(name, el) {
+  // Always activate the .nav-item div, even if a child span was clicked
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
-  else {
-    const match = document.querySelector(`[data-page="${name}"]`);
-    if (match) match.classList.add('active');
-  }
-  document.getElementById('page-feed').style.display    = name === 'feed'     ? 'flex'  : 'none';
-  document.getElementById('page-query').style.display   = name === 'query'    ? 'block' : 'none';
-  document.getElementById('page-team').style.display    = name === 'team'     ? 'block' : 'none';
-  document.getElementById('page-settings').style.display= name === 'settings' ? 'block' : 'none';
+  const navItem = el ? (el.closest ? el.closest('.nav-item') || el : el) : document.querySelector(`[data-page="${name}"]`);
+  if (navItem) navItem.classList.add('active');
+
+  // Show/hide all pages
+  const pages = { feed: 'flex', query: 'flex', team: 'flex', settings: 'flex' };
+  Object.keys(pages).forEach(p => {
+    const pg = document.getElementById('page-' + p);
+    if (pg) pg.style.display = p === name ? pages[p] : 'none';
+  });
+
   if (name === 'team') renderTeam();
 }
 
