@@ -810,27 +810,59 @@ async function handleSignup(btn) {
 }
 
 // ── Paid plan checkout ───────────────────────────────────────────────────────
-async function startCheckout(plan) {
-  const email = prompt(`Enter your email for the ${plan.toUpperCase()} plan:`);
-  if (!email || !email.includes('@')) return;
+let _checkoutPlan = '';
 
-  const btn = document.querySelector(`[data-plan="${plan}"] .price-cta`);
-  if (btn) { btn.textContent = 'Loading...'; btn.style.opacity = '0.6'; }
+function startCheckout(plan) {
+  _checkoutPlan = plan;
+  const modal = document.getElementById('checkout-modal');
+  const title = document.getElementById('checkout-modal-title');
+  const prices = { solo: '$19/mo', team: '$99/mo', enterprise: '$599/mo' };
+  title.textContent = `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan — ${prices[plan] || ''}`;
+  document.getElementById('checkout-email-input').value = '';
+  document.getElementById('checkout-email-error').textContent = '';
+  document.getElementById('checkout-submit-btn').textContent = 'Continue to payment →';
+  document.getElementById('checkout-submit-btn').disabled = false;
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('checkout-email-input').focus(), 50);
+}
+
+function closeCheckoutModal() {
+  document.getElementById('checkout-modal').style.display = 'none';
+}
+
+async function submitCheckout() {
+  const email = document.getElementById('checkout-email-input').value.trim();
+  const errEl = document.getElementById('checkout-email-error');
+  if (!email || !email.includes('@')) {
+    errEl.textContent = 'Please enter a valid email address.';
+    return;
+  }
+  errEl.textContent = '';
+
+  const btn = document.getElementById('checkout-submit-btn');
+  btn.textContent = 'Redirecting…';
+  btn.disabled = true;
+
+  const planBtn = document.querySelector(`[data-plan="${_checkoutPlan}"] .price-cta`);
+  if (planBtn) { planBtn.textContent = 'Loading...'; planBtn.style.opacity = '0.6'; }
 
   try {
     const res = await fetch(`${API_BASE}/billing/checkout`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ plan, email }),
+      body:    JSON.stringify({ plan: _checkoutPlan, email }),
     });
 
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
+    closeCheckoutModal();
     window.location.href = data.checkout_url;
 
   } catch(err) {
-    if (btn) { btn.textContent = 'Get started →'; btn.style.opacity = '1'; }
-    showToast('Checkout unavailable. Contact hello@contextmesh.dev', 'error');
+    btn.textContent = 'Continue to payment →';
+    btn.disabled = false;
+    if (planBtn) { planBtn.textContent = 'Get started →'; planBtn.style.opacity = '1'; }
+    errEl.textContent = 'Checkout unavailable. Try again or email hello@contextmesh.dev';
     console.error(err);
   }
 }
@@ -846,6 +878,16 @@ function showToast(msg, type = 'info') {
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3500);
 }
 
+// Close modal on backdrop click
+document.getElementById('checkout-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeCheckoutModal();
+});
+// Close on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeCheckoutModal();
+  if (e.key === 'Enter' && document.getElementById('checkout-modal').style.display === 'flex') submitCheckout();
+});
+
 // Parallax grid
 document.addEventListener('mousemove', e => {
   const x = (e.clientX / window.innerWidth - 0.5) * 12;
@@ -854,5 +896,47 @@ document.addEventListener('mousemove', e => {
   if (hero) hero.style.backgroundPosition = `${x}px ${y}px`;
 });
 </script>
+
+<!-- CHECKOUT MODAL -->
+<div id="checkout-modal" style="display:none;position:fixed;inset:0;background:rgba(10,10,8,.75);z-index:999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)">
+  <div style="background:var(--paper);border:2px solid var(--ink);border-radius:4px;width:100%;max-width:440px;font-family:var(--mono);position:relative">
+
+    <!-- Header -->
+    <div style="padding:24px 28px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-family:var(--display);font-size:18px;font-weight:800;letter-spacing:-0.02em" id="checkout-modal-title">Team Plan — $99/mo</div>
+        <div style="font-size:11px;color:var(--mid);margin-top:3px">Enter your email — we'll send you to Paddle checkout</div>
+      </div>
+      <button onclick="closeCheckoutModal()" style="background:none;border:none;font-size:22px;color:var(--mid);cursor:crosshair;line-height:1;padding:4px">×</button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:24px 28px">
+      <label style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--mid);display:block;margin-bottom:8px">Email address</label>
+      <input
+        id="checkout-email-input"
+        type="email"
+        placeholder="you@company.com"
+        style="width:100%;background:#fff;border:2px solid var(--ink);border-radius:3px;padding:12px 14px;font-family:var(--mono);font-size:14px;color:var(--ink);outline:none;transition:border-color .15s"
+        onfocus="this.style.borderColor='#C8FF00'"
+        onblur="this.style.borderColor='var(--ink)'"
+      >
+      <div id="checkout-email-error" style="font-size:11px;color:var(--red);min-height:18px;margin-top:6px"></div>
+
+      <button
+        id="checkout-submit-btn"
+        onclick="submitCheckout()"
+        style="width:100%;margin-top:8px;background:var(--ink);color:var(--lime);border:2px solid var(--ink);border-radius:3px;padding:13px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:crosshair;letter-spacing:0.04em;transition:all .15s"
+        onmouseover="this.style.background='var(--lime)';this.style.color='var(--ink)'"
+        onmouseout="this.style.background='var(--ink)';this.style.color='var(--lime)'"
+      >Continue to payment →</button>
+
+      <div style="margin-top:16px;font-size:11px;color:var(--mid);text-align:center;line-height:1.7">
+        Secure checkout via Paddle · Cancel anytime · Key emailed instantly after payment
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
