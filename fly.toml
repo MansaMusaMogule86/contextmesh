@@ -1,104 +1,23 @@
-# ContextMesh — Fly.io deployment config
-# Deploy: fly deploy
-# First time: fly launch --no-deploy (then set secrets, then fly deploy)
+# fly.toml app configuration file generated for app-twilight-log-2405 on 2026-03-21T09:47:54Z
 #
-# Required secrets (set once):
-#   fly secrets set OPENAI_API_KEY=sk-...
-#   fly secrets set CONTEXTMESH_SECRET=<random-64-char-string>
-#   fly secrets set STRIPE_SECRET_KEY=sk_live_...
-#   fly secrets set STRIPE_WEBHOOK_SECRET=whsec_...
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app    = "contextmesh-api"
-region = "dxb"          # Dubai — closest to UAE users; fallback: sin (Singapore)
+app = 'app-twilight-log-2405'
+primary_region = 'iad'
 
 [build]
-  dockerfile = "api/Dockerfile"
 
-[env]
-  PORT                = "8080"
-  WORKERS             = "2"
-  CONTEXTMESH_ENV     = "production"
-  QDRANT_URL          = "http://contextmesh-qdrant.internal:6333"
-  REDIS_URL           = "redis://contextmesh-redis.internal:6379"
-  # Secrets injected at runtime — do NOT put real values here
-  # OPENAI_API_KEY     set via: fly secrets set
-  # CONTEXTMESH_SECRET set via: fly secrets set
-  # STRIPE_SECRET_KEY  set via: fly secrets set
-
-[[services]]
+[http_service]
   internal_port = 8080
-  protocol      = "tcp"
-
-  [[services.ports]]
-    port     = 80
-    handlers = ["http"]
-    force_https = true
-
-  [[services.ports]]
-    port     = 443
-    handlers = ["tls", "http"]
-
-  [services.concurrency]
-    type       = "requests"
-    soft_limit = 80
-    hard_limit = 100
-
-  [[services.http_checks]]
-    interval     = 15000   # ms
-    timeout      = 5000
-    grace_period = "10s"
-    method       = "GET"
-    path         = "/health"
-    protocol     = "http"
-
-  [[services.tcp_checks]]
-    interval    = 10000
-    timeout     = 2000
-    grace_period = "5s"
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-  cpu_kind = "shared"
-  cpus     = 1
-  memory   = "512mb"
-
-# Auto-scaling: scale to zero when idle (saves cost on free/solo plans)
-[http_service]
-  internal_port      = 8080
-  force_https        = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 0   # set to 1 for always-on (team/enterprise)
-  processes          = ["app"]
-
-# Persistent volume for embedding cache (optional — cuts OpenAI costs ~60%)
-[[mounts]]
-  source      = "contextmesh_embed_cache"
-  destination = "/tmp/cm_embed_cache"
-  initial_size = "1gb"
-
-# Deploy strategy: rolling with health check gate
-[deploy]
-  strategy          = "rolling"
-  release_command   = "python -c 'from vector_store import VectorStore; VectorStore()'"  # warm init
-  wait_timeout      = "120s"
-
-# ── How to set up external services ──────────────────────────────────────────
-#
-# Qdrant (managed):
-#   Option A — Qdrant Cloud (recommended for production):
-#     1. Create cluster at cloud.qdrant.io
-#     2. fly secrets set QDRANT_URL=https://xxx.qdrant.io QDRANT_API_KEY=xxx
-#
-#   Option B — Self-hosted on Fly.io:
-#     fly apps create contextmesh-qdrant
-#     fly volumes create qdrant_data --size 10 --app contextmesh-qdrant
-#     fly deploy --app contextmesh-qdrant --image qdrant/qdrant
-#
-# Redis (managed):
-#   Option A — Upstash Redis (recommended, free tier available):
-#     1. Create DB at upstash.com
-#     2. fly secrets set REDIS_URL=rediss://xxx.upstash.io:6380 REDIS_PASSWORD=xxx
-#
-#   Option B — Fly Redis:
-#     fly redis create --name contextmesh-redis
-#     (Fly auto-sets REDIS_URL in your app)
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256
