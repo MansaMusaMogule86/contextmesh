@@ -18,7 +18,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from vector_store import VectorStore
@@ -97,6 +97,10 @@ class QueryRequest(BaseModel):
     min_score:  float         = Field(0.3, ge=0.0, le=1.0, description="Minimum similarity score (0–1)")
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
 
 @app.get("/health")
 async def health():
