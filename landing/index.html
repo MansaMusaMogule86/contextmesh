@@ -387,6 +387,7 @@
   </div>
   <div class="nav-links">
     <a href="#how">How it works</a>
+    <a href="#quickstart">Quickstart</a>
     <a href="#pricing">Pricing</a>
     <a href="/docs">Docs</a>
     <a href="/dashboard">Dashboard</a>
@@ -594,15 +595,80 @@
     </div>
     <div class="code-block" id="lang-curl">
 <span class="co-dim"># Store context</span>
-curl -X POST https://api.contextmesh.dev/remember \
+curl -X POST https://contextmesh.dev/remember \
   -H <span class="co-amber">"Authorization: Bearer cm_live_..."</span> \
   -d <span class="co-amber">'{"text":"prod DB is postgres 15",
      "tags":["database"]}'</span>
 
 <span class="co-dim"># Query</span>
-curl -X POST https://api.contextmesh.dev/query \
+curl -X POST https://contextmesh.dev/query \
   -H <span class="co-amber">"Authorization: Bearer cm_live_..."</span> \
   -d <span class="co-amber">'{"q":"database info?","top_k":3}'</span>
+    </div>
+  </div>
+</section>
+
+<!-- GETTING STARTED -->
+<section id="quickstart" style="border-bottom:2px solid var(--ink)">
+  <div style="display:grid;grid-template-columns:200px 1fr">
+    <div style="border-right:2px solid var(--ink);padding:60px 40px;display:flex;align-items:flex-start;justify-content:center">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--mid);writing-mode:vertical-rl;transform:rotate(180deg)">Getting Started</div>
+    </div>
+    <div style="padding:60px">
+      <h2 style="font-family:var(--display);font-size:clamp(28px,3vw,44px);font-weight:800;letter-spacing:-0.03em;line-height:1.1;margin-bottom:12px">Up in 10 minutes.<br>Works from anywhere.</h2>
+      <p style="font-size:14px;color:var(--mid);margin-bottom:48px;max-width:520px">Four steps from zero to persistent memory across all your AI agents.</p>
+      <div style="display:flex;flex-direction:column;gap:0;border:2px solid var(--ink);border-radius:4px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:64px 1fr;border-bottom:2px solid var(--ink)">
+          <div style="background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:18px;font-weight:700">01</div>
+          <div style="padding:24px 28px">
+            <div style="font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:6px">Get your API key</div>
+            <div style="font-size:13px;color:var(--mid);margin-bottom:14px">Pick a plan below → pay via Paddle → key arrives in your email instantly.</div>
+            <div style="background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;padding:12px 16px;border-radius:3px;display:inline-block">cm_live_U7f9x...</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:64px 1fr;border-bottom:2px solid var(--ink)">
+          <div style="background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:18px;font-weight:700">02</div>
+          <div style="padding:24px 28px">
+            <div style="font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:6px">Store your first context</div>
+            <div style="font-size:13px;color:var(--mid);margin-bottom:14px">One POST request. Text gets embedded and stored with your metadata.</div>
+            <pre style="background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;padding:16px;border-radius:3px;overflow-x:auto;line-height:1.8">curl -X POST https://contextmesh.dev/remember \
+  -H "Authorization: Bearer cm_live_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Auth uses RS256 JWT, 15min expiry",
+       "tags":["auth","security"]}'
+
+# → {"id": "abc-123", "status": "stored"}</pre>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:64px 1fr;border-bottom:2px solid var(--ink)">
+          <div style="background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:18px;font-weight:700">03</div>
+          <div style="padding:24px 28px">
+            <div style="font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:6px">Query from any agent</div>
+            <div style="font-size:13px;color:var(--mid);margin-bottom:14px">Ask in plain English. Semantically matched — no keyword overlap needed.</div>
+            <pre style="background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;padding:16px;border-radius:3px;overflow-x:auto;line-height:1.8">curl -X POST https://contextmesh.dev/query \
+  -H "Authorization: Bearer cm_live_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"q":"how does login work?","top_k":5}'
+
+# → [{text: "Auth uses RS256 JWT...", score: 0.94}]</pre>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:64px 1fr">
+          <div style="background:#C8FF00;color:#000;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:18px;font-weight:700">04</div>
+          <div style="padding:24px 28px">
+            <div style="font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:6px">Add MCP — zero-effort memory</div>
+            <div style="font-size:13px;color:var(--mid);margin-bottom:14px">One block in your MCP config. Cursor and Claude get <code style="background:#f0f0e8;padding:1px 5px;border-radius:2px;font-family:var(--mono)">remember</code>, <code style="background:#f0f0e8;padding:1px 5px;border-radius:2px;font-family:var(--mono)">recall</code>, and <code style="background:#f0f0e8;padding:1px 5px;border-radius:2px;font-family:var(--mono)">forget</code> as native tools.</div>
+            <pre style="background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;padding:16px;border-radius:3px;overflow-x:auto;line-height:1.8">// ~/.cursor/mcp.json  or  ~/.claude/mcp.json
+{
+  "contextmesh": {
+    "command": "npx",
+    "args": ["contextmesh-mcp"],
+    "env": { "CM_KEY": "cm_live_your_key" }
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -691,7 +757,7 @@ function switchLang(lang, el) {
 }
 
 // ── Config — swap these after deploy ────────────────────────────────────────
-const API_BASE = 'https://api.contextmesh.dev';
+const API_BASE = 'https://contextmesh.dev';
 
 // ── Free plan signup ─────────────────────────────────────────────────────────
 async function handleSignup(btn) {
