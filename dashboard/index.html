@@ -607,6 +607,17 @@
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
+<div id="login-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:32px;width:100%;max-width:420px;font-family:var(--mono)">
+    <div style="font-family:var(--display);font-size:20px;font-weight:600;margin-bottom:8px">Enter API Key</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:24px">Your <code style="color:var(--green)">cm_live_...</code> key from ContextMesh</div>
+    <input id="login-key-input" type="password" placeholder="cm_live_..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:10px 14px;font-family:var(--mono);font-size:13px;color:var(--text);outline:none;margin-bottom:8px" />
+    <div id="login-error" style="font-size:11px;color:var(--red);min-height:16px;margin-bottom:12px"></div>
+    <button onclick="submitKey()" style="width:100%;background:var(--green);color:#000;border:none;border-radius:4px;padding:11px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer">Connect →</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast">
   <span class="toast-icon">✓</span>
@@ -615,32 +626,65 @@
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
-const CM_KEY = localStorage.getItem('cm_key') || 'cm_live_demo_key';
-const CM_URL = localStorage.getItem('cm_url') || 'https://api.contextmesh.dev';
+let CM_KEY = localStorage.getItem('cm_key') || '';
 let activeTag = null;
 let allEntries = [];
 let keyVisible = false;
 
-// Demo data — shown when no real API key
-const DEMO_ENTRIES = [
-  { id:'e001', text:'Production database is PostgreSQL 15.3 hosted on AWS us-east-1. Primary instance is db.r6g.2xlarge. Read replicas in eu-west-1 for EU customers.', tags:['database','infra'], source_agent:'cursor', confidence:1.0, created_at: Date.now()/1000 - 86400*2 },
-  { id:'e002', text:'Never run DROP TABLE or TRUNCATE in production without an approved migration file and a backup verified within 24h.', tags:['database','security'], source_agent:'claude', confidence:1.0, created_at: Date.now()/1000 - 86400*3 },
-  { id:'e003', text:'JavaScript: camelCase for all variables and functions. Python: snake_case. No exceptions. ESLint config enforces this.', tags:['conventions'], source_agent:'cursor', confidence:0.95, created_at: Date.now()/1000 - 86400 },
-  { id:'e004', text:'CEO prefers async communication. Send Loom videos for complex issues rather than long Slack threads. She checks messages 9am and 4pm GST.', tags:['people'], source_agent:'claude', confidence:0.85, created_at: Date.now()/1000 - 3600*5 },
-  { id:'e005', text:'API rate limit is 1000 requests/minute per workspace. Burst up to 2000 for 10 seconds. Retry with exponential backoff starting at 200ms.', tags:['infra'], source_agent:'cursor', confidence:1.0, created_at: Date.now()/1000 - 3600*2 },
-  { id:'e006', text:'Stripe webhook endpoint is /api/webhooks/stripe. Secret is in AWS Secrets Manager under prod/stripe/webhook-secret. Never commit to git.', tags:['security','infra'], source_agent:'claude', confidence:1.0, created_at: Date.now()/1000 - 86400*5 },
-  { id:'e007', text:'Tech stack: Next.js 14 (app router), FastAPI, PostgreSQL, Redis, Qdrant, deployed on Vercel + Fly.io. Node 20, Python 3.12.', tags:['infra','conventions'], source_agent:'cursor', confidence:1.0, created_at: Date.now()/1000 - 86400*7 },
-  { id:'e008', text:'CTO reviews all PRs touching payments/ or auth/. Tag him on GitHub: @rafaelcm. Minimum 2 approvals for these paths.', tags:['people','security'], source_agent:'claude', confidence:0.9, created_at: Date.now()/1000 - 86400*1 },
-];
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Authorization': `Bearer ${CM_KEY}`, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  if (!r.ok) { const t = await r.text(); throw Object.assign(new Error(t), { status: r.status }); }
+  return r.json();
+}
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Login modal ───────────────────────────────────────────────────────────────
+function showLogin() { document.getElementById('login-modal').style.display = 'flex'; }
+function hideLogin() { document.getElementById('login-modal').style.display = 'none'; }
+
+async function submitKey() {
+  const key = document.getElementById('login-key-input').value.trim();
+  if (!key.startsWith('cm_')) {
+    document.getElementById('login-error').textContent = 'Key must start with cm_live_';
+    return;
+  }
+  CM_KEY = key;
+  try {
+    await api('GET', '/usage');
+    localStorage.setItem('cm_key', CM_KEY);
+    hideLogin();
+    await loadAll();
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Invalid key — check and try again.';
+    CM_KEY = '';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-modal').style.display !== 'none') submitKey();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    await Promise.all([loadEntries(), loadUsage()]);
+    logActivity('system', `Loaded ${allEntries.length} context entries`);
+  } catch(e) {
+    if (e.status === 401) {
+      localStorage.removeItem('cm_key'); CM_KEY = '';
+      showLogin();
+      document.getElementById('login-error').textContent = 'Session expired. Enter your API key.';
+    } else {
+      logActivity('system', 'Error: ' + e.message);
+    }
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-  allEntries = [...DEMO_ENTRIES];
-  renderEntries();
-  updateStats();
-  updateUsage();
-  logActivity('system', 'Workspace loaded · 8 context entries');
-  animateStats();
+  if (!CM_KEY) { showLogin(); return; }
+  loadAll();
 });
 
 // ── Page routing ─────────────────────────────────────────────────────────────
@@ -694,13 +738,16 @@ function renderEntries() {
   });
 }
 
-function deleteEntry(id, evt) {
+async function deleteEntry(id, evt) {
   evt.stopPropagation();
-  allEntries = allEntries.filter(e => e.id !== id);
-  renderEntries();
-  updateStats();
-  toast('Entry deleted');
-  logActivity('delete', `Removed entry ${id.slice(0,8)}`);
+  try {
+    await api('DELETE', `/forget/${id}`);
+    allEntries = allEntries.filter(e => e.id !== id);
+    renderEntries();
+    updateStats();
+    toast('Entry deleted');
+    logActivity('delete', `Removed entry ${id.slice(0,8)}`);
+  } catch(e) { toast('Delete failed', true); }
 }
 
 function filterTag(el, tag) {
@@ -714,62 +761,55 @@ function filterTag(el, tag) {
 function openPanel()  { document.getElementById('remember-panel').classList.add('open'); }
 function closePanel() { document.getElementById('remember-panel').classList.remove('open'); }
 
-function doRemember() {
+async function doRemember() {
   const text  = document.getElementById('r-text').value.trim();
   if (!text) { toast('Please enter some context', true); return; }
   const tags  = document.getElementById('r-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
   const agent = document.getElementById('r-agent').value.trim() || 'dashboard';
   const conf  = parseFloat(document.getElementById('r-conf').value);
 
-  const entry = {
-    id:           'e' + Math.random().toString(36).slice(2,8),
-    text, tags,
-    source_agent: agent,
-    confidence:   conf,
-    created_at:   Date.now() / 1000,
-  };
-  allEntries.unshift(entry);
-  renderEntries();
-  updateStats();
-  closePanel();
-  toast('Memory stored ✓');
-  logActivity('store', `Stored: "${text.slice(0,50)}…"`);
-  document.getElementById('r-text').value  = '';
-  document.getElementById('r-tags').value  = '';
-  document.getElementById('r-agent').value = '';
+  try {
+    const res = await api('POST', '/remember', { text, tags, source_agent: agent, confidence: conf });
+    const entry = { id: res.id, text, tags, source_agent: agent, confidence: conf, created_at: Date.now()/1000 };
+    allEntries.unshift(entry);
+    renderEntries();
+    updateStats();
+    closePanel();
+    toast('Memory stored ✓');
+    logActivity('store', `Stored: "${text.slice(0,50)}…"`);
+    document.getElementById('r-text').value  = '';
+    document.getElementById('r-tags').value  = '';
+    document.getElementById('r-agent').value = '';
+  } catch(e) { toast('Failed to store: ' + e.message, true); }
 }
 
 // ── Query ─────────────────────────────────────────────────────────────────────
-function runQuery() {
-  const q   = document.getElementById('query-input').value.trim();
+async function runQuery() {
+  const q    = document.getElementById('query-input').value.trim();
   if (!q) return;
-  const topK = parseInt(document.getElementById('top-k').value) || 5;
-  const res  = document.getElementById('query-results');
+  const topK     = parseInt(document.getElementById('top-k').value) || 5;
+  const minScore = parseFloat(document.getElementById('min-score').value) || 0.3;
+  const res      = document.getElementById('query-results');
+  res.innerHTML  = `<div style="font-size:11px;color:var(--text3)">Searching…</div>`;
 
-  // Simulate semantic search over demo entries
-  const scored = allEntries.map(e => {
-    const qLower = q.toLowerCase();
-    const tLower = e.text.toLowerCase();
-    const overlap = qLower.split(' ').filter(w => w.length > 3 && tLower.includes(w)).length;
-    const tagMatch = (e.tags||[]).some(t => qLower.includes(t)) ? 0.15 : 0;
-    const score = Math.min(0.99, (overlap * 0.18) + tagMatch + (e.confidence * 0.05) + Math.random() * 0.12);
-    return { ...e, score };
-  }).sort((a,b) => b.score - a.score).slice(0, topK).filter(e => e.score > 0.1);
-
-  res.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:16px">Query: <span style="color:var(--text)">"${escHtml(q)}"</span> · ${scored.length} result${scored.length !== 1 ? 's' : ''}</div>`;
-  scored.forEach(r => {
-    const cls  = r.score >= .7 ? 'high' : r.score >= .45 ? 'mid' : 'low';
-    const tags = (r.tags||[]).map(t=>`<span class="entry-tag">${t}</span>`).join('');
-    const card = document.createElement('div');
-    card.className = `result-card ${cls}`;
-    card.innerHTML = `
-      <div class="result-score">score: ${r.score.toFixed(3)}</div>
-      <div class="result-text">${escHtml(r.text)}</div>
-      <div class="result-footer">${tags}<span class="result-id">id: ${r.id}</span></div>`;
-    res.appendChild(card);
-  });
-  if (!scored.length) res.innerHTML += `<div class="empty"><div class="empty-icon">⌕</div><div class="empty-text">No results above threshold.</div></div>`;
-  logActivity('query', `Queried: "${q.slice(0,40)}" → ${scored.length} results`);
+  try {
+    const data   = await api('POST', '/query', { q, top_k: topK, min_score: minScore });
+    const scored = data.results || [];
+    res.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:16px">Query: <span style="color:var(--text)">"${escHtml(q)}"</span> · ${scored.length} result${scored.length !== 1 ? 's' : ''}</div>`;
+    scored.forEach(r => {
+      const cls  = r.score >= .7 ? 'high' : r.score >= .45 ? 'mid' : 'low';
+      const tags = (r.tags||[]).map(t=>`<span class="entry-tag">${t}</span>`).join('');
+      const card = document.createElement('div');
+      card.className = `result-card ${cls}`;
+      card.innerHTML = `
+        <div class="result-score">score: ${r.score.toFixed(3)}</div>
+        <div class="result-text">${escHtml(r.text)}</div>
+        <div class="result-footer">${tags}<span class="result-id">id: ${r.id}</span></div>`;
+      res.appendChild(card);
+    });
+    if (!scored.length) res.innerHTML += `<div class="empty"><div class="empty-icon">⌕</div><div class="empty-text">No results above threshold.</div></div>`;
+    logActivity('query', `Queried: "${q.slice(0,40)}" → ${scored.length} results`);
+  } catch(e) { res.innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${e.message}</div>`; }
 }
 
 document.addEventListener('keydown', e => {
@@ -779,29 +819,35 @@ document.addEventListener('keydown', e => {
 // ── Stats & usage ─────────────────────────────────────────────────────────────
 function updateStats() {
   document.getElementById('stat-total').textContent = allEntries.length;
+  document.getElementById('nav-count').textContent  = allEntries.length;
   const agents = [...new Set(allEntries.map(e => e.source_agent))].filter(Boolean);
   document.getElementById('stat-agents').textContent = agents.length;
   const avgConf = allEntries.length ? (allEntries.reduce((s,e)=>s+(e.confidence||1),0)/allEntries.length) : 0;
   document.getElementById('stat-score').textContent = allEntries.length ? (avgConf*100).toFixed(0)+'%' : '—';
 }
 
-function updateUsage() {
-  const q  = 18_400, qMax = 1_000_000;
-  const e_ = allEntries.length, eMax = 5_000_000;
-  document.getElementById('usage-q').textContent = `${q.toLocaleString()} / ${(qMax/1e6).toFixed(0)}M`;
-  document.getElementById('usage-e').textContent = `${e_.toLocaleString()} / ${(eMax/1e6).toFixed(0)}M`;
-  setTimeout(() => {
-    document.getElementById('q-fill').style.width = (q/qMax*100).toFixed(2) + '%';
-    document.getElementById('e-fill').style.width = (e_/eMax*100).toFixed(2) + '%';
-  }, 300);
-  document.getElementById('stat-queries').textContent = q.toLocaleString();
+async function loadEntries() {
+  const data = await api('GET', '/list?limit=200');
+  allEntries  = data.entries || [];
+  renderEntries();
+  updateStats();
 }
 
-function animateStats() {
-  const el = document.getElementById('stat-total');
-  let v = 0, target = allEntries.length;
-  const step = () => { v = Math.min(target, v + 1); el.textContent = v; if (v < target) setTimeout(step, 40); };
-  step();
+async function loadUsage() {
+  const u    = await api('GET', '/usage');
+  const q    = u.queries_used,   qMax = u.queries_limit;
+  const e_   = u.entries_stored, eMax = u.entries_limit;
+  const fmtN = n => n >= 1e6 ? (n/1e6).toFixed(0)+'M' : n >= 1e3 ? (n/1e3).toFixed(0)+'k' : n;
+  document.getElementById('stat-queries').textContent = q.toLocaleString();
+  document.getElementById('usage-q').textContent = `${q.toLocaleString()} / ${fmtN(qMax)}`;
+  document.getElementById('usage-e').textContent = `${e_.toLocaleString()} / ${fmtN(eMax)}`;
+  setTimeout(() => {
+    if (qMax > 0) document.getElementById('q-fill').style.width = Math.min(100, q/qMax*100).toFixed(2) + '%';
+    if (eMax > 0) document.getElementById('e-fill').style.width = Math.min(100, e_/eMax*100).toFixed(2) + '%';
+  }, 300);
+  document.getElementById('ws-id').textContent       = u.workspace_id || '';
+  document.getElementById('settings-ws-id').textContent = u.workspace_id || '';
+  document.querySelector('.plan-badge').textContent  = u.plan || 'free';
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
