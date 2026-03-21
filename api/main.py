@@ -100,6 +100,9 @@ class QueryRequest(BaseModel):
 
 @app.get("/", include_in_schema=False)
 async def root():
+    landing = os.path.join(os.path.dirname(__file__), "landing", "index.html")
+    if os.path.exists(landing):
+        return FileResponse(landing, media_type="text/html")
     return RedirectResponse(url="/docs")
 
 @app.get("/health")
