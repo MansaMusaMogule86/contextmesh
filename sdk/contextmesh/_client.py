@@ -16,7 +16,7 @@ import httpx
 
 from contextmesh._errors import AuthError, RateLimitError, NotFoundError, APIError
 
-DEFAULT_BASE = "https://api.contextmesh.dev"
+DEFAULT_BASE = "https://contextmesh.dev"
 TIMEOUT      = httpx.Timeout(15.0)
 
 

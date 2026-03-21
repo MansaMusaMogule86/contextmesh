@@ -9,7 +9,7 @@
  *   const results = await mesh.query("what do we know about our database?");
  */
 
-const DEFAULT_BASE = "https://api.contextmesh.dev";
+const DEFAULT_BASE = "https://contextmesh.dev";
 
 export class ContextMeshError extends Error {
   constructor(message, statusCode) {

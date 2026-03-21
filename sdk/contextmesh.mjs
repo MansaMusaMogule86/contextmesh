@@ -3,7 +3,7 @@
  * import { Mesh } from "contextmesh"
  */
 
-const DEFAULT_BASE = "https://api.contextmesh.dev";
+const DEFAULT_BASE = "https://contextmesh.dev";
 
 export class ContextMeshError extends Error {
   constructor(message, statusCode) {

@@ -14,7 +14,7 @@ import asyncio
 from typing import Optional, Union
 
 
-DEFAULT_BASE = "https://api.contextmesh.dev"
+DEFAULT_BASE = "https://contextmesh.dev"
 
 
 class ContextMeshError(Exception):

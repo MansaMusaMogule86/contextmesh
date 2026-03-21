@@ -1,23 +1,30 @@
-#!/usr/bin/env python3
 """
-ContextMesh MCP Server
-Exposes ContextMesh as a Model Context Protocol server.
+ContextMesh MCP Server — installable entry point.
+Exposes ContextMesh as a Model Context Protocol server over stdio.
+
 Any MCP-compatible agent (Claude Code, Cursor, Cline, etc.)
 can add one line to their config and gain persistent memory.
 
 Usage in ~/.cursor/mcp.json or ~/.claude/mcp.json:
 {
   "contextmesh": {
-    "command": "npx",
-    "args": ["contextmesh-mcp"],
+    "command": "contextmesh-mcp",
     "env": {
       "CM_KEY": "cm_live_your_key_here",
-      "CM_URL": "https://contextmesh.dev"  // optional, defaults to prod
+      "CM_URL": "https://contextmesh.dev"
     }
   }
 }
-"""
 
+Or with npx (no install required):
+{
+  "contextmesh": {
+    "command": "npx",
+    "args": ["contextmesh-mcp"],
+    "env": { "CM_KEY": "cm_live_your_key_here" }
+  }
+}
+"""
 
 import sys
 import os
@@ -25,10 +32,6 @@ import json
 import asyncio
 import httpx
 from typing import Any
-
-# Windows asyncio compatibility fix
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 CM_KEY = os.getenv("CM_KEY", "")
 CM_URL = os.getenv("CM_URL", "https://contextmesh.dev").rstrip("/")
@@ -70,7 +73,7 @@ TOOLS = [
                 "tags": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Optional tags for categorization e.g. ['database', 'conventions', 'people']",
+                    "description": "Optional tags for categorization e.g. ['database', 'conventions']",
                 },
                 "confidence": {
                     "type": "number",
@@ -136,7 +139,7 @@ TOOLS = [
 
 # ── Tool execution ────────────────────────────────────────────────────────────
 
-async def call_api(method: str, path: str, body: dict = None) -> dict:
+async def call_api(method: str, path: str, body: dict | None = None) -> dict:
     async with httpx.AsyncClient(timeout=15.0) as client:
         if method == "POST":
             r = await client.post(f"{CM_URL}{path}", headers=HEADERS, json=body or {})
@@ -149,23 +152,39 @@ async def call_api(method: str, path: str, body: dict = None) -> dict:
 
 
 async def execute_tool(name: str, args: dict) -> str:
-    if not CM_KEY:
+    # Read key/url dynamically so tests can monkeypatch os.environ
+    key = os.getenv("CM_KEY", CM_KEY)
+    url = os.getenv("CM_URL", CM_URL).rstrip("/")
+    hdrs = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    if not key:
         return "ERROR: CM_KEY environment variable not set. Get a key at https://contextmesh.dev"
+
+    async def _call(method: str, path: str, body: dict | None = None) -> dict:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            if method == "POST":
+                r = await client.post(f"{url}{path}", headers=hdrs, json=body or {})
+            elif method == "DELETE":
+                r = await client.delete(f"{url}{path}", headers=hdrs)
+            else:
+                r = await client.get(f"{url}{path}", headers=hdrs, params=body or {})
+            r.raise_for_status()
+            return r.json()
 
     try:
         if name == "remember":
-            result = await call_api("POST", "/remember", {
-                "text":       args["text"],
-                "tags":       args.get("tags", []),
-                "confidence": args.get("confidence", 1.0),
+            result = await _call("POST", "/remember", {
+                "text":         args["text"],
+                "tags":         args.get("tags", []),
+                "confidence":   args.get("confidence", 1.0),
                 "source_agent": "mcp",
             })
             return f"Stored. ID: {result['id']} | Tags: {result.get('tags', [])}"
 
         elif name == "recall":
-            result = await call_api("POST", "/query", {
-                "q":         args["query"],
-                "top_k":     args.get("top_k", 5),
+            result = await _call("POST", "/query", {
+                "q":          args["query"],
+                "top_k":      args.get("top_k", 5),
                 "tag_filter": args.get("tag"),
             })
             if not result["results"]:
@@ -177,14 +196,14 @@ async def execute_tool(name: str, args: dict) -> str:
             return "\n".join(lines)
 
         elif name == "forget":
-            result = await call_api("DELETE", f"/forget/{args['id']}")
+            await _call("DELETE", f"/forget/{args['id']}")
             return f"Deleted entry {args['id']}"
 
         elif name == "list_context":
             params = {"limit": args.get("limit", 20)}
             if args.get("tag"):
                 params["tag_filter"] = args["tag"]
-            result = await call_api("GET", "/list", params)
+            result = await _call("GET", "/list", params)
             if not result["entries"]:
                 return "No context stored yet."
             lines = [f"Total stored: {result['total']}\n"]
@@ -192,6 +211,9 @@ async def execute_tool(name: str, args: dict) -> str:
                 tags = f" [{', '.join(e['tags'])}]" if e.get("tags") else ""
                 lines.append(f"• {e['text'][:120]}{'...' if len(e['text']) > 120 else ''}{tags}\n  ID: {e['id']}")
             return "\n".join(lines)
+
+        # Unknown tool — return None (matches original behavior expected by tests)
+        return None
 
     except httpx.HTTPStatusError as e:
         return f"API error {e.response.status_code}: {e.response.text}"
@@ -201,8 +223,62 @@ async def execute_tool(name: str, args: dict) -> str:
 
 # ── MCP stdio event loop ──────────────────────────────────────────────────────
 
-async def main():
-    async for line in async_stdin():
+async def _handle_message(msg: dict):
+    method = msg.get("method", "")
+    id_    = msg.get("id")
+    params = msg.get("params", {})
+
+    if method == "initialize":
+        write(mcp_response(id_, {
+            "protocolVersion": "2024-11-05",
+            "capabilities":    {"tools": {}},
+            "serverInfo":      {"name": "contextmesh", "version": "1.0.0"},
+        }))
+
+    elif method == "tools/list":
+        write(mcp_response(id_, {"tools": TOOLS}))
+
+    elif method == "tools/call":
+        tool_name = params.get("name")
+        tool_args = params.get("arguments", {})
+        result    = await execute_tool(tool_name, tool_args)
+        write(mcp_response(id_, {
+            "content": [{"type": "text", "text": result}],
+            "isError": result.startswith("ERROR") or result.startswith("API error"),
+        }))
+
+    elif method == "notifications/initialized":
+        pass  # no response needed
+
+    else:
+        if id_ is not None:
+            write(mcp_error(id_, -32601, f"Method not found: {method}"))
+
+
+async def _async_main():
+    loop   = asyncio.get_event_loop()
+    reader = asyncio.StreamReader()
+    await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
+    while True:
+        line = await reader.readline()
+        if not line:
+            break
+        line = line.decode().strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        await _handle_message(msg)
+
+
+def _sync_main():
+    """Windows fallback: synchronous stdin polling."""
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
         line = line.strip()
         if not line:
             continue
@@ -210,102 +286,16 @@ async def main():
             msg = json.loads(line)
         except json.JSONDecodeError:
             continue
-
-        method = msg.get("method", "")
-        id_    = msg.get("id")
-        params = msg.get("params", {})
-
-        if method == "initialize":
-            write(mcp_response(id_, {
-                "protocolVersion": "2024-11-05",
-                "capabilities":    {"tools": {}},
-                "serverInfo":      {"name": "contextmesh", "version": "1.0.0"},
-            }))
-
-        elif method == "tools/list":
-            write(mcp_response(id_, {"tools": TOOLS}))
-
-        elif method == "tools/call":
-            tool_name = params.get("name")
-            tool_args = params.get("arguments", {})
-            result    = await execute_tool(tool_name, tool_args)
-            write(mcp_response(id_, {
-                "content": [{"type": "text", "text": result}],
-                "isError": result.startswith("ERROR") or result.startswith("API error"),
-            }))
-
-        elif method == "notifications/initialized":
-            pass  # no response needed
-
-        else:
-            if id_ is not None:
-                write(mcp_error(id_, -32601, f"Method not found: {method}"))
+        asyncio.run(_handle_message(msg))
 
 
-
-# Cross-platform stdin reader: async on Unix, sync fallback on Windows
-import platform
-if sys.platform == "win32":
-    def sync_stdin():
-        while True:
-            line = sys.stdin.readline()
-            if not line:
-                break
-            yield line
-else:
-    async def async_stdin():
-        loop   = asyncio.get_event_loop()
-        reader = asyncio.StreamReader()
-        await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
-        while True:
-            line = await reader.readline()
-            if not line:
-                break
-            yield line.decode()
+def main():
+    """Entry point for the contextmesh-mcp CLI command."""
+    if sys.platform == "win32":
+        _sync_main()
+    else:
+        asyncio.run(_async_main())
 
 
 if __name__ == "__main__":
-    if sys.platform == "win32":
-        # Synchronous event loop for Windows
-        async def main_sync():
-            for line in sync_stdin():
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    msg = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                method = msg.get("method", "")
-                id_    = msg.get("id")
-                params = msg.get("params", {})
-
-                if method == "initialize":
-                    write(mcp_response(id_, {
-                        "protocolVersion": "2024-11-05",
-                        "capabilities":    {"tools": {}},
-                        "serverInfo":      {"name": "contextmesh", "version": "1.0.0"},
-                    }))
-
-                elif method == "tools/list":
-                    write(mcp_response(id_, {"tools": TOOLS}))
-
-                elif method == "tools/call":
-                    tool_name = params.get("name")
-                    tool_args = params.get("arguments", {})
-                    result    = asyncio.run(execute_tool(tool_name, tool_args))
-                    write(mcp_response(id_, {
-                        "content": [{"type": "text", "text": result}],
-                        "isError": result.startswith("ERROR") or result.startswith("API error"),
-                    }))
-
-                elif method == "notifications/initialized":
-                    pass  # no response needed
-
-                else:
-                    if id_ is not None:
-                        write(mcp_error(id_, -32601, f"Method not found: {method}"))
-        main_sync()
-    else:
-        asyncio.run(main())
+    main()
