@@ -40,7 +40,7 @@ PADDLE_API_KEY       = os.getenv("PADDLE_API_KEY", "")
 PADDLE_WEBHOOK_SECRET = os.getenv("PADDLE_WEBHOOK_SECRET", "")
 PADDLE_BASE          = "https://api.paddle.com"   # sandbox: api.sandbox.paddle.com
 APP_URL              = os.getenv("APP_URL", "https://contextmesh.dev")
-API_URL              = os.getenv("API_URL", "https://api.contextmesh.dev")
+API_URL              = os.getenv("API_URL", "https://contextmesh.dev")
 RESEND_API_KEY       = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL           = os.getenv("FROM_EMAIL", "keys@contextmesh.dev")
 
@@ -154,7 +154,7 @@ async def send_key_email(email: str, api_key: str, plan: str, workspace_id: str)
         mesh.remember("your first context")
       </div>
       <div style="margin-top:24px;">
-        <a href="https://docs.contextmesh.dev" style="color:#C8FF00;font-size:13px;">Docs →</a>
+        <a href="https://contextmesh.dev/docs" style="color:#C8FF00;font-size:13px;">Docs →</a>
         &nbsp;&nbsp;
         <a href="{APP_URL}/dashboard" style="color:#C8FF00;font-size:13px;">Dashboard →</a>
       </div>
@@ -204,7 +204,8 @@ async def create_checkout(body: CheckoutRequest):
     # Free plan — provision instantly, no payment
     if plan == "free":
         workspace_id = f"ws_{secrets.token_hex(8)}"
-        api_key      = generate_api_key()
+        from auth import _auth
+        api_key = await _auth.generate_key(workspace_id=workspace_id, plan="free", label=body.email)
         await send_key_email(body.email, api_key, "free", workspace_id)
         return {
             "plan":         "free",
