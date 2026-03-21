@@ -41,18 +41,21 @@ check_secret() {
 }
 
 MISSING_SECRETS=0
-check_secret "OPENAI_API_KEY"      required
-check_secret "CONTEXTMESH_SECRET"  required
-check_secret "STRIPE_SECRET_KEY"   required
-check_secret "STRIPE_WEBHOOK_SECRET" required
+check_secret "OPENAI_API_KEY"         required
+check_secret "CONTEXTMESH_SECRET"     required
+check_secret "PADDLE_API_KEY"         required
+check_secret "PADDLE_WEBHOOK_SECRET"  required
+check_secret "PADDLE_PRICE_SOLO"      required
+check_secret "PADDLE_PRICE_TEAM"      required
+check_secret "PADDLE_PRICE_ENTERPRISE" required
+check_secret "QDRANT_URL"             required
+check_secret "REDIS_URL"              required
+check_secret "RESEND_API_KEY"         optional
 
 if [[ "$MISSING_SECRETS" -eq 1 ]]; then
   echo ""
   echo "Set missing secrets with:"
-  echo "  fly secrets set OPENAI_API_KEY=sk-... --app $APP"
-  echo "  fly secrets set CONTEXTMESH_SECRET=\$(openssl rand -hex 32) --app $APP"
-  echo "  fly secrets set STRIPE_SECRET_KEY=sk_live_... --app $APP"
-  echo "  fly secrets set STRIPE_WEBHOOK_SECRET=whsec_... --app $APP"
+  echo "  bash set_secrets.sh"
   exit 1
 fi
 

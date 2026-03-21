@@ -15,29 +15,12 @@ import time
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
-# ── Serve sitemap.xml and robots.txt ─────────────────────────────────────────
-
-from fastapi import Response
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-@app.get("/sitemap.xml", include_in_schema=False)
-async def serve_sitemap():
-    sitemap_path = os.path.join(PROJECT_ROOT, "sitemap.xml")
-    if not os.path.exists(sitemap_path):
-        return Response(status_code=404)
-    return FileResponse(sitemap_path, media_type="application/xml")
-
-@app.get("/robots.txt", include_in_schema=False)
-async def serve_robots():
-    robots_path = os.path.join(PROJECT_ROOT, "robots.txt")
-    if not os.path.exists(robots_path):
-        return Response(status_code=404)
-    return FileResponse(robots_path, media_type="text/plain")
-from pydantic import BaseModel, Field
 
 from vector_store import VectorStore
 from embedder    import Embedder
@@ -78,9 +61,25 @@ app.add_middleware(
     allow_headers     = ["*"],
 )
 
-# Mount billing routes if Stripe is configured
+# Mount billing routes (Paddle)
 if _BILLING_ENABLED:
     app.include_router(billing_router)
+
+# ── Serve sitemap.xml and robots.txt ─────────────────────────────────────────
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def serve_sitemap():
+    sitemap_path = os.path.join(PROJECT_ROOT, "sitemap.xml")
+    if not os.path.exists(sitemap_path):
+        return Response(status_code=404)
+    return FileResponse(sitemap_path, media_type="application/xml")
+
+@app.get("/robots.txt", include_in_schema=False)
+async def serve_robots():
+    robots_path = os.path.join(PROJECT_ROOT, "robots.txt")
+    if not os.path.exists(robots_path):
+        return Response(status_code=404)
+    return FileResponse(robots_path, media_type="text/plain")
 
 # ── Request / Response models ─────────────────────────────────────────────────
 
