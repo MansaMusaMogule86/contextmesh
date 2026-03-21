@@ -28,6 +28,7 @@ COPY --from=builder /install /usr/local
 COPY --chown=contextmesh:contextmesh api/ .
 COPY --chown=contextmesh:contextmesh billing/ ./billing/
 COPY --chown=contextmesh:contextmesh landing/ ./landing/
+COPY --chown=contextmesh:contextmesh dashboard/ ./dashboard/
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

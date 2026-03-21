@@ -105,6 +105,13 @@ async def root():
         return FileResponse(landing, media_type="text/html")
     return RedirectResponse(url="/docs")
 
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard():
+    path = os.path.join(os.path.dirname(__file__), "dashboard", "index.html")
+    if os.path.exists(path):
+        return FileResponse(path, media_type="text/html")
+    return RedirectResponse(url="/docs")
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "contextmesh", "ts": int(time.time())}
