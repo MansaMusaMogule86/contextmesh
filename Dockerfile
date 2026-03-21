@@ -24,11 +24,12 @@ WORKDIR /app
 
 COPY --from=builder /install /usr/local
 
-# Copy API source, billing routes, and landing page
+# Copy API source, billing routes, landing page, dashboard, and docs
 COPY --chown=contextmesh:contextmesh api/ .
 COPY --chown=contextmesh:contextmesh billing/ ./billing/
 COPY --chown=contextmesh:contextmesh landing/ ./landing/
 COPY --chown=contextmesh:contextmesh dashboard/ ./dashboard/
+COPY --chown=contextmesh:contextmesh api/docs/ ./docs/
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

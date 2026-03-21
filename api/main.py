@@ -50,6 +50,8 @@ app = FastAPI(
     description = "Persistent memory layer for AI agents",
     version     = "1.0.0",
     lifespan    = lifespan,
+    docs_url    = "/api-reference",   # move Swagger away from /docs
+    redoc_url   = None,               # disable ReDoc
 )
 
 app.add_middleware(
@@ -110,7 +112,14 @@ async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard", "index.html")
     if os.path.exists(path):
         return FileResponse(path, media_type="text/html")
-    return RedirectResponse(url="/docs")
+    return RedirectResponse(url="/api-reference")
+
+@app.get("/docs", include_in_schema=False)
+async def docs():
+    path = os.path.join(os.path.dirname(__file__), "docs", "index.html")
+    if os.path.exists(path):
+        return FileResponse(path, media_type="text/html")
+    return RedirectResponse(url="/api-reference")
 
 @app.get("/health")
 async def health():

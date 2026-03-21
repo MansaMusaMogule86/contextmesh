@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContextMesh — Docs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Azeret+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:    #0A0A08;
+    --paper:  #F2EFE8;
+    --cream:  #E8E4DA;
+    --lime:   #C8FF00;
+    --mid:    #6B6B60;
+    --light:  #B8B5AB;
+    --border: #D4D0C8;
+    --green:  #00C85A;
+    --blue:   #0066FF;
+    --red:    #FF3B2E;
+    --display:'Syne', sans-serif;
+    --mono:   'Azeret Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  a { color: var(--ink); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--paper); border-bottom: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 56px;
+  }
+  .nav-logo { font-family: var(--display); font-size: 18px; font-weight: 800; letter-spacing: -0.03em; display: flex; align-items: center; gap: 10px; }
+  .nav-mark { width: 24px; height: 24px; background: var(--ink); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .nav-mark svg { width: 14px; height: 14px; fill: var(--lime); }
+  .nav-links { display: flex; align-items: center; gap: 32px; font-size: 13px; }
+  .nav-links a { color: var(--mid); transition: color .15s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--ink); text-decoration: none; }
+  .nav-cta { background: var(--ink); color: var(--lime); border: 2px solid var(--ink); border-radius: 3px; padding: 6px 16px; font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .nav-cta:hover { background: var(--lime); color: var(--ink); }
+
+  /* ── LAYOUT ── */
+  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; padding-top: 56px; max-width: 1200px; margin: 0 auto; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: sticky; top: 56px; height: calc(100vh - 56px);
+    overflow-y: auto; border-right: 2px solid var(--ink);
+    padding: 32px 0;
+  }
+  .sidebar-section { margin-bottom: 28px; }
+  .sidebar-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid); padding: 0 24px; margin-bottom: 8px; }
+  .sidebar-link { display: block; padding: 6px 24px; font-size: 13px; color: var(--mid); transition: all .15s; border-left: 2px solid transparent; }
+  .sidebar-link:hover { color: var(--ink); text-decoration: none; background: var(--cream); }
+  .sidebar-link.active { color: var(--ink); border-left-color: var(--lime); background: var(--cream); font-weight: 500; }
+  .method-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .dot-post { background: var(--green); }
+  .dot-get  { background: var(--blue); }
+  .dot-del  { background: var(--red); }
+
+  /* ── CONTENT ── */
+  .content { padding: 48px 56px; max-width: 800px; }
+
+  /* ── SECTION ── */
+  .doc-section { margin-bottom: 72px; scroll-margin-top: 80px; }
+  .doc-section h1 { font-family: var(--display); font-size: 36px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px; }
+  .doc-section h2 { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
+  .doc-section h3 { font-family: var(--display); font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .doc-section p  { color: var(--mid); margin-bottom: 16px; line-height: 1.8; }
+  .doc-section ul { color: var(--mid); padding-left: 20px; margin-bottom: 16px; }
+  .doc-section li { margin-bottom: 6px; }
+
+  /* ── ENDPOINT CARD ── */
+  .endpoint { background: #fff; border: 2px solid var(--ink); border-radius: 4px; margin-bottom: 32px; overflow: hidden; }
+  .endpoint-header { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .method-badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 3px; letter-spacing: 0.08em; }
+  .badge-post { background: #E8FFF0; color: #00803A; border: 1px solid #B0F0C8; }
+  .badge-get  { background: #E8F0FF; color: #0044AA; border: 1px solid #B0C8FF; }
+  .badge-del  { background: #FFF0EE; color: #CC2A1E; border: 1px solid #FFB8B4; }
+  .endpoint-path { font-family: var(--mono); font-size: 15px; font-weight: 500; }
+  .endpoint-desc { font-size: 13px; color: var(--mid); margin-left: auto; }
+  .endpoint-body { padding: 20px; }
+  .endpoint-body p { font-size: 13px; color: var(--mid); margin-bottom: 14px; }
+
+  /* ── PARAMS TABLE ── */
+  .params-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+  .params-table th { text-align: left; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mid); padding: 6px 12px; border-bottom: 2px solid var(--ink); background: var(--cream); }
+  .params-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .params-table tr:last-child td { border-bottom: none; }
+  .param-name { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+  .param-type { color: var(--mid); font-family: var(--mono); font-size: 11px; }
+  .param-required { font-size: 10px; color: var(--red); font-weight: 600; letter-spacing: 0.05em; }
+  .param-optional { font-size: 10px; color: var(--light); }
+  .param-desc { color: var(--mid); font-size: 12px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block { background: var(--ink); border-radius: 4px; overflow: hidden; margin: 16px 0; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid #222; }
+  .code-lang { font-size: 11px; color: #888; letter-spacing: 0.1em; text-transform: uppercase; font-family: var(--mono); }
+  .copy-btn { font-size: 11px; color: #888; background: none; border: none; cursor: pointer; font-family: var(--mono); padding: 2px 6px; border-radius: 2px; transition: all .15s; }
+  .copy-btn:hover { color: var(--lime); background: rgba(255,255,255,.05); }
+  .code-block pre { padding: 16px; font-family: var(--mono); font-size: 12px; line-height: 1.7; color: #E8E4D8; overflow-x: auto; }
+  .code-block pre .cm  { color: var(--lime); }
+  .code-block pre .str { color: #A8E0A0; }
+  .code-block pre .kw  { color: #88BBFF; }
+  .code-block pre .cmt { color: #666; font-style: italic; }
+  .code-block pre .num { color: #FFB888; }
+
+  /* ── INLINE CODE ── */
+  code { font-family: var(--mono); font-size: 12px; background: var(--cream); padding: 2px 6px; border-radius: 2px; border: 1px solid var(--border); color: var(--ink); }
+
+  /* ── RESPONSE BOX ── */
+  .response-box { background: var(--ink); border-radius: 4px; padding: 16px; font-family: var(--mono); font-size: 12px; color: #A8E0A0; line-height: 1.7; overflow-x: auto; }
+
+  /* ── CALLOUT ── */
+  .callout { border-left: 4px solid var(--lime); background: var(--cream); padding: 14px 18px; border-radius: 0 4px 4px 0; margin: 20px 0; font-size: 13px; color: var(--mid); }
+  .callout strong { color: var(--ink); }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 2px solid var(--ink); }
+  .tab { padding: 8px 18px; font-size: 12px; font-family: var(--mono); cursor: pointer; color: var(--mid); border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .15s; }
+  .tab.active { color: var(--ink); border-bottom-color: var(--lime); font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── PLAN GRID ── */
+  .plan-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0; }
+  .plan-card { border: 2px solid var(--ink); border-radius: 4px; padding: 20px; }
+  .plan-name { font-family: var(--display); font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .plan-price { font-family: var(--display); font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px; }
+  .plan-price span { font-size: 13px; font-family: var(--mono); font-weight: 400; color: var(--mid); }
+  .plan-feature { font-size: 11px; color: var(--mid); margin-bottom: 4px; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .content { padding: 32px 24px; }
+    .plan-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="nav-mark">
+      <svg viewBox="0 0 14 14"><polygon points="7,1 13,4 13,10 7,13 1,10 1,4"/></svg>
+    </div>
+    ContextMesh
+  </div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/docs" class="active">Docs</a>
+    <a href="/dashboard">Dashboard</a>
+  </div>
+  <a href="/#pricing"><button class="nav-cta">Get API Key →</button></a>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Getting Started</div>
+      <a class="sidebar-link active" href="#quickstart">Quickstart</a>
+      <a class="sidebar-link" href="#authentication">Authentication</a>
+      <a class="sidebar-link" href="#errors">Errors</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">API Reference</div>
+      <a class="sidebar-link" href="#remember"><span class="method-dot dot-post"></span>POST /remember</a>
+      <a class="sidebar-link" href="#query"><span class="method-dot dot-post"></span>POST /query</a>
+      <a class="sidebar-link" href="#forget"><span class="method-dot dot-del"></span>DELETE /forget</a>
+      <a class="sidebar-link" href="#list"><span class="method-dot dot-get"></span>GET /list</a>
+      <a class="sidebar-link" href="#usage"><span class="method-dot dot-get"></span>GET /usage</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">SDKs</div>
+      <a class="sidebar-link" href="#python-sdk">Python SDK</a>
+      <a class="sidebar-link" href="#js-sdk">JavaScript SDK</a>
+      <a class="sidebar-link" href="#mcp">MCP (Claude / Cursor)</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Reference</div>
+      <a class="sidebar-link" href="#plans">Plans & Limits</a>
+      <a class="sidebar-link" href="/api-reference" target="_blank">OpenAPI spec ↗</a>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- QUICKSTART -->
+    <div class="doc-section" id="quickstart">
+      <h1>ContextMesh Docs</h1>
+      <p>Persistent semantic memory for AI agents. Store context once, retrieve it semantically from any agent, any session, any tool.</p>
+
+      <div class="callout"><strong>Base URL:</strong> <code>https://contextmesh.dev</code></div>
+
+      <h2>Quickstart</h2>
+      <p>Get your API key at <a href="/#pricing">contextmesh.dev/#pricing</a>, then store your first memory in 30 seconds:</p>
+
+      <div class="tabs" id="qs-tabs">
+        <button class="tab active" onclick="switchTab('qs', 'python', this)">Python</button>
+        <button class="tab" onclick="switchTab('qs', 'curl', this)">cURL</button>
+        <button class="tab" onclick="switchTab('qs', 'js', this)">JavaScript</button>
+        <button class="tab" onclick="switchTab('qs', 'mcp', this)">MCP</button>
+      </div>
+
+      <div id="qs-python" class="tab-content active">
+        <div class="code-block">
+          <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">pip install</span> contextmesh
+
+<span class="kw">from</span> contextmesh <span class="kw">import</span> Mesh
+
+mesh = Mesh(<span class="str">"cm_live_your_key"</span>)
+
+<span class="cmt"># Store context</span>
+mesh.remember(<span class="str">"prod DB is Postgres 15 on AWS us-east-1"</span>)
+
+<span class="cmt"># Retrieve semantically</span>
+hits = mesh.query(<span class="str">"what database are we running?"</span>)
+<span class="kw">for</span> h <span class="kw">in</span> hits:
+    print(h[<span class="str">"score"</span>], h[<span class="str">"text"</span>])</pre>
+        </div>
+      </div>
+
+      <div id="qs-curl" class="tab-content">
+        <div class="code-block">
+          <div class="code-header"><span class="code-lang">curl</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="cmt"># Store</span>
+curl -X POST https://contextmesh.dev/remember \
+  -H <span class="str">"Authorization: Bearer cm_live_your_key"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"text": "prod DB is Postgres 15 on AWS us-east-1"}'</span>
+
+<span class="cmt"># Query</span>
+curl -X POST https://contextmesh.dev/query \
+  -H <span class="str">"Authorization: Bearer cm_live_your_key"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"q": "what database are we running?", "top_k": 5}'</span></pre>
+        </div>
+      </div>
+
+      <div id="qs-js" class="tab-content">
+        <div class="code-block">
+          <div class="code-header"><span class="code-lang">javascript</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="kw">import</span> { Mesh } <span class="kw">from</span> <span class="str">"contextmesh-mcp"</span>
+
+<span class="kw">const</span> mesh = <span class="kw">new</span> Mesh(<span class="str">"cm_live_your_key"</span>)
+<span class="kw">await</span> mesh.remember(<span class="str">"prod DB is Postgres 15 on AWS us-east-1"</span>)
+<span class="kw">const</span> hits = <span class="kw">await</span> mesh.query(<span class="str">"what database are we running?"</span>)
+console.log(hits)</pre>
+        </div>
+      </div>
+
+      <div id="qs-mcp" class="tab-content">
+        <div class="code-block">
+          <div class="code-header"><span class="code-lang">~/.cursor/mcp.json or ~/.claude/mcp.json</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>{
+  <span class="str">"contextmesh"</span>: {
+    <span class="str">"command"</span>: <span class="str">"npx"</span>,
+    <span class="str">"args"</span>: [<span class="str">"contextmesh-mcp"</span>],
+    <span class="str">"env"</span>: {
+      <span class="str">"CM_KEY"</span>: <span class="str">"cm_live_your_key"</span>
+    }
+  }
+}</pre>
+        </div>
+        <p style="font-size:13px;color:var(--mid);margin-top:8px">Restart Claude or Cursor after saving. The agent will automatically call <code>remember</code> and <code>query</code> as tools.</p>
+      </div>
+    </div>
+
+    <!-- AUTHENTICATION -->
+    <div class="doc-section" id="authentication">
+      <h2>Authentication</h2>
+      <p>All API requests require a Bearer token in the <code>Authorization</code> header.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">http</span></div>
+        <pre>Authorization: Bearer cm_live_your_key</pre>
+      </div>
+      <p>API keys start with <code>cm_live_</code>. Get one at <a href="/#pricing">contextmesh.dev/#pricing</a>. Keys are workspace-scoped — all data stored under a key belongs to that workspace only.</p>
+      <div class="callout"><strong>Keep your key private.</strong> Anyone with your key has full read/write access to your workspace.</div>
+    </div>
+
+    <!-- ERRORS -->
+    <div class="doc-section" id="errors">
+      <h2>Errors</h2>
+      <table class="params-table">
+        <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">401</td><td class="param-desc">Invalid or missing API key</td></tr>
+          <tr><td class="param-name">404</td><td class="param-desc">Entry not found</td></tr>
+          <tr><td class="param-name">429</td><td class="param-desc">Rate limit or monthly quota exceeded — upgrade your plan</td></tr>
+          <tr><td class="param-name">400</td><td class="param-desc">Validation error — check request body</td></tr>
+          <tr><td class="param-name">500</td><td class="param-desc">Server error — contact hello@contextmesh.dev</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- POST /remember -->
+    <div class="doc-section" id="remember">
+      <h2>POST /remember</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method-badge badge-post">POST</span>
+          <span class="endpoint-path">/remember</span>
+          <span class="endpoint-desc">Store a piece of context</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Embeds the text and stores it in your workspace. Returns an ID you can use to delete this entry later.</p>
+          <h3>Request body</h3>
+          <table class="params-table">
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="param-name">text</td><td class="param-type">string</td><td class="param-required">required</td><td class="param-desc">The context to store. Max 10,000 chars.</td></tr>
+              <tr><td class="param-name">tags</td><td class="param-type">string[]</td><td class="param-optional">optional</td><td class="param-desc">Labels for filtering later. e.g. <code>["database", "infra"]</code></td></tr>
+              <tr><td class="param-name">source_agent</td><td class="param-type">string</td><td class="param-optional">optional</td><td class="param-desc">Which agent wrote this. e.g. <code>"cursor"</code>, <code>"claude"</code></td></tr>
+              <tr><td class="param-name">confidence</td><td class="param-type">float</td><td class="param-optional">optional</td><td class="param-desc">How confident you are (0.0–1.0). Default: 1.0</td></tr>
+            </tbody>
+          </table>
+          <h3>Response</h3>
+          <div class="response-box">{"id": "a1b2c3d4", "status": "stored", "chars": 48, "tags": ["database"]}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POST /query -->
+    <div class="doc-section" id="query">
+      <h2>POST /query</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method-badge badge-post">POST</span>
+          <span class="endpoint-path">/query</span>
+          <span class="endpoint-desc">Semantic search</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Finds the most semantically relevant stored entries using vector similarity. Returns results ranked by score.</p>
+          <h3>Request body</h3>
+          <table class="params-table">
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="param-name">q</td><td class="param-type">string</td><td class="param-required">required</td><td class="param-desc">Natural language query. Max 2,000 chars.</td></tr>
+              <tr><td class="param-name">top_k</td><td class="param-type">int</td><td class="param-optional">optional</td><td class="param-desc">Max results to return (1–20). Default: 5</td></tr>
+              <tr><td class="param-name">tag_filter</td><td class="param-type">string</td><td class="param-optional">optional</td><td class="param-desc">Only return entries with this tag</td></tr>
+              <tr><td class="param-name">min_score</td><td class="param-type">float</td><td class="param-optional">optional</td><td class="param-desc">Minimum similarity score (0.0–1.0). Default: 0.3</td></tr>
+            </tbody>
+          </table>
+          <h3>Response</h3>
+          <div class="response-box">{
+  "query": "what database are we running?",
+  "count": 2,
+  "results": [
+    {"id": "a1b2c3d4", "text": "prod DB is Postgres 15...", "score": 0.921, "tags": ["database"], "source_agent": "cursor", "created_at": 1711234567},
+    {"id": "e5f6g7h8", "text": "DB backups run nightly...", "score": 0.784, "tags": ["database"], "source_agent": "claude", "created_at": 1711200000}
+  ]
+}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELETE /forget -->
+    <div class="doc-section" id="forget">
+      <h2>DELETE /forget/{entry_id}</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method-badge badge-del">DELETE</span>
+          <span class="endpoint-path">/forget/{entry_id}</span>
+          <span class="endpoint-desc">Remove an entry</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Permanently removes a stored context entry by ID. Get the ID from <code>/remember</code> or <code>/list</code>.</p>
+          <h3>Response</h3>
+          <div class="response-box">{"id": "a1b2c3d4", "status": "deleted"}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /list -->
+    <div class="doc-section" id="list">
+      <h2>GET /list</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method-badge badge-get">GET</span>
+          <span class="endpoint-path">/list</span>
+          <span class="endpoint-desc">Browse stored entries</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Returns all stored entries in your workspace. Paginate with <code>limit</code> and <code>offset</code>.</p>
+          <h3>Query parameters</h3>
+          <table class="params-table">
+            <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="param-name">limit</td><td class="param-type">int</td><td class="param-desc">Results per page (1–200). Default: 50</td></tr>
+              <tr><td class="param-name">offset</td><td class="param-type">int</td><td class="param-desc">Skip N entries. Default: 0</td></tr>
+              <tr><td class="param-name">tag_filter</td><td class="param-type">string</td><td class="param-desc">Filter by tag</td></tr>
+            </tbody>
+          </table>
+          <h3>Response</h3>
+          <div class="response-box">{"total": 42, "offset": 0, "limit": 50, "entries": [...]}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /usage -->
+    <div class="doc-section" id="usage">
+      <h2>GET /usage</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method-badge badge-get">GET</span>
+          <span class="endpoint-path">/usage</span>
+          <span class="endpoint-desc">Check plan usage</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Returns this month's usage and your plan limits.</p>
+          <div class="response-box">{
+  "workspace_id": "ws_a4f8c3d2",
+  "plan": "team",
+  "queries_used": 1842,
+  "queries_limit": 1000000,
+  "entries_stored": 234,
+  "entries_limit": 5000000,
+  "rate_limit_rpm": 500
+}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PYTHON SDK -->
+    <div class="doc-section" id="python-sdk">
+      <h2>Python SDK</h2>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">bash</span></div>
+        <pre>pip install contextmesh</pre>
+      </div>
+      <h3>Sync client</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+        <pre><span class="kw">from</span> contextmesh <span class="kw">import</span> Mesh
+
+mesh = Mesh(<span class="str">"cm_live_your_key"</span>)
+
+<span class="cmt"># Store</span>
+id_ = mesh.remember(<span class="str">"prod DB is Postgres 15"</span>, tags=[<span class="str">"database"</span>])
+
+<span class="cmt"># Query</span>
+hits = mesh.query(<span class="str">"what database?"</span>, top_k=<span class="num">5</span>, min_score=<span class="num">0.3</span>)
+
+<span class="cmt"># Delete</span>
+mesh.forget(id_)
+
+<span class="cmt"># List all</span>
+data = mesh.list(limit=<span class="num">50</span>)
+
+<span class="cmt"># Check usage</span>
+u = mesh.usage()</pre>
+      </div>
+      <h3>Async client</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+        <pre><span class="kw">from</span> contextmesh <span class="kw">import</span> AsyncMesh
+
+mesh = AsyncMesh(<span class="str">"cm_live_your_key"</span>)
+<span class="kw">await</span> mesh.remember(<span class="str">"prod DB is Postgres 15"</span>)
+hits = <span class="kw">await</span> mesh.query(<span class="str">"what database?"</span>)</pre>
+      </div>
+    </div>
+
+    <!-- JS SDK -->
+    <div class="doc-section" id="js-sdk">
+      <h2>JavaScript SDK</h2>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">bash</span></div>
+        <pre>npm install contextmesh-mcp</pre>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">javascript</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+        <pre><span class="kw">import</span> { Mesh } <span class="kw">from</span> <span class="str">"contextmesh-mcp"</span>
+
+<span class="kw">const</span> mesh = <span class="kw">new</span> Mesh(<span class="str">"cm_live_your_key"</span>)
+<span class="kw">await</span> mesh.remember(<span class="str">"prod DB is Postgres 15"</span>, { tags: [<span class="str">"database"</span>] })
+<span class="kw">const</span> hits = <span class="kw">await</span> mesh.query(<span class="str">"what database?"</span>)</pre>
+      </div>
+    </div>
+
+    <!-- MCP -->
+    <div class="doc-section" id="mcp">
+      <h2>MCP — Claude & Cursor</h2>
+      <p>Add ContextMesh as an MCP server so Claude and Cursor automatically remember and recall context during conversations.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">~/.cursor/mcp.json or ~/.claude/mcp.json</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+        <pre>{
+  <span class="str">"contextmesh"</span>: {
+    <span class="str">"command"</span>: <span class="str">"npx"</span>,
+    <span class="str">"args"</span>: [<span class="str">"contextmesh-mcp"</span>],
+    <span class="str">"env"</span>: {
+      <span class="str">"CM_KEY"</span>: <span class="str">"cm_live_your_key"</span>
+    }
+  }
+}</pre>
+      </div>
+      <p>After saving, restart Claude or Cursor. The agent gets three tools: <code>remember</code>, <code>query</code>, <code>forget</code>.</p>
+      <div class="callout"><strong>No code required.</strong> The agent decides when to store and retrieve context automatically.</div>
+    </div>
+
+    <!-- PLANS -->
+    <div class="doc-section" id="plans">
+      <h2>Plans & Limits</h2>
+      <div class="plan-grid">
+        <div class="plan-card">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0<span>/mo</span></div>
+          <div class="plan-feature">1,000 queries/mo</div>
+          <div class="plan-feature">10,000 entries</div>
+          <div class="plan-feature">20 req/min</div>
+          <div class="plan-feature">1 workspace</div>
+        </div>
+        <div class="plan-card" style="border-color:var(--lime);background:var(--cream)">
+          <div class="plan-name">Solo</div>
+          <div class="plan-price">$19<span>/mo</span></div>
+          <div class="plan-feature">100k queries/mo</div>
+          <div class="plan-feature">500k entries</div>
+          <div class="plan-feature">100 req/min</div>
+          <div class="plan-feature">1 workspace</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Team</div>
+          <div class="plan-price">$99<span>/mo</span></div>
+          <div class="plan-feature">1M queries/mo</div>
+          <div class="plan-feature">5M entries</div>
+          <div class="plan-feature">500 req/min</div>
+          <div class="plan-feature">10 workspaces</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">$599<span>/mo</span></div>
+          <div class="plan-feature">Unlimited queries</div>
+          <div class="plan-feature">Unlimited entries</div>
+          <div class="plan-feature">2,000 req/min</div>
+          <div class="plan-feature">Unlimited workspaces</div>
+        </div>
+      </div>
+      <p>Upgrade or manage your plan at <a href="/billing">contextmesh.dev/billing</a>.</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function switchTab(group, name, el) {
+  document.querySelectorAll(`#${group}-tabs .tab`).forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll(`[id^="${group}-"]`).forEach(c => {
+    if (c.classList.contains('tab-content')) c.classList.remove('active');
+  });
+  const target = document.getElementById(`${group}-${name}`);
+  if (target) target.classList.add('active');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard?.writeText(pre.innerText).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 1500);
+  });
+}
+
+// Highlight active sidebar link on scroll
+const sections = document.querySelectorAll('.doc-section');
+const links    = document.querySelectorAll('.sidebar-link');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 100) current = s.id; });
+  links.forEach(l => {
+    l.classList.remove('active');
+    if (l.getAttribute('href') === '#' + current) l.classList.add('active');
+  });
+}, { passive: true });
+</script>
+</body>
+</html>
