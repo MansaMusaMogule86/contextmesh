@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(fly auth:*)",
+      "Bash(fly apps:*)",
+      "Bash(fly secrets:*)",
+      "Bash(fly deploy:*)",
+      "Bash(fly logs:*)",
+      "Bash(fly ssh:*)",
+      "Bash(ls \"C:\\\\Users\\\\mehdi\\\\Desktop\\\\02_PROJECTS\\\\contextmesh\\\\api\"\" && echo \"---\" && ls \"C:UsersmehdiDesktop02_PROJECTScontextmeshbilling\"\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

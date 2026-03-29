@@ -713,7 +713,7 @@ curl -X POST https://contextmesh.dev/query \
       <div class="price-line"><span class="price-line-check">◈</span> Unlimited queries</div>
       <div class="price-line"><span class="price-line-check">◈</span> On-prem option</div>
       <div class="price-line"><span class="price-line-check">◈</span> SLA + dedicated support</div>
-      <a href="mailto:hello@contextmesh.dev?subject=Enterprise%20Plan" class="price-cta">Contact us →</a>
+      <a href="#" class="price-cta" onclick="startCheckout('enterprise');return false">Get started →</a>
     </div>
   </div>
 </section>
@@ -733,12 +733,14 @@ curl -X POST https://contextmesh.dev/query \
 <footer>
   <div class="footer-logo">ContextMesh</div>
   <div class="footer-links">
-    <a href="#">Docs</a>
-    <a href="#">GitHub</a>
-    <a href="#">Pricing</a>
-    <a href="#">Status</a>
+    <a href="/docs">Docs</a>
+    <a href="https://github.com/contextmesh">GitHub</a>
+    <a href="#pricing">Pricing</a>
+    <a href="/legal/terms.html">Terms</a>
+    <a href="/legal/privacy.html">Privacy</a>
+    <a href="/legal/refund.html">Refunds</a>
   </div>
-  <div style="font-size:11px;letter-spacing:0.06em">© 2025 ContextMesh</div>
+  <div style="font-size:11px;letter-spacing:0.06em">© 2026 ContextMesh</div>
 </footer>
 
 <script>
@@ -757,7 +759,60 @@ function switchLang(lang, el) {
 }
 
 // ── Config — swap these after deploy ────────────────────────────────────────
-const API_BASE = 'https://contextmesh.dev';
+const API_BASE = 'https://api.contextmesh.dev';
+const PADDLE_CLIENT_TOKEN = 'live_649b8dec79f705c5ae75c62e3ec';
+const PADDLE_ENV = 'production';
+
+// Paddle Price IDs (from your Paddle dashboard)
+const PADDLE_PRICES = {
+  solo: 'pri_01kkmrjz6mzqmyw894t17njt7x',
+  team: 'pri_01kkmrkz4v6d3cjcz46dxdq6dk',
+  enterprise: 'pri_01kkmrjz6mzqmyw894t17njt7x'
+};
+
+// ── Initialize Paddle.js ─────────────────────────────────────────────────────
+let paddleInitialized = false;
+
+function initPaddle() {
+  if (paddleInitialized || typeof Paddle === 'undefined') return;
+  
+  Paddle.Initialize({
+    token: PADDLE_CLIENT_TOKEN,
+    environment: PADDLE_ENV,
+    eventCallback: function(event) {
+      console.log('Paddle event:', event);
+      
+      if (event.name === 'checkout.completed') {
+        // Payment successful
+        closeCheckoutModal();
+        showToast('Payment successful! Your API key will arrive by email shortly.', 'success');
+        
+        // Redirect to success page
+        const customData = event.data?.custom_data || {};
+        setTimeout(() => {
+          window.location.href = `/success?workspace=${customData.workspace_id || ''}&plan=${customData.plan || ''}`;
+        }, 2000);
+      }
+      
+      if (event.name === 'checkout.closed') {
+        // User closed checkout
+        const btn = document.getElementById('checkout-submit-btn');
+        btn.textContent = 'Continue to payment →';
+        btn.disabled = false;
+      }
+    }
+  });
+  
+  paddleInitialized = true;
+}
+
+// Initialize Paddle when script loads
+if (typeof Paddle !== 'undefined') {
+  initPaddle();
+} else {
+  // Wait for Paddle script to load
+  window.addEventListener('load', initPaddle);
+}
 
 // ── Free plan signup ─────────────────────────────────────────────────────────
 async function handleSignup(btn) {
@@ -840,30 +895,60 @@ async function submitCheckout() {
   errEl.textContent = '';
 
   const btn = document.getElementById('checkout-submit-btn');
-  btn.textContent = 'Redirecting…';
+  btn.textContent = 'Opening checkout…';
   btn.disabled = true;
 
   const planBtn = document.querySelector(`[data-plan="${_checkoutPlan}"] .price-cta`);
   if (planBtn) { planBtn.textContent = 'Loading...'; planBtn.style.opacity = '0.6'; }
 
   try {
-    const res = await fetch(`${API_BASE}/billing/checkout`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ plan: _checkoutPlan, email }),
+    // Get price ID directly (no backend needed)
+    const priceId = PADDLE_PRICES[_checkoutPlan];
+    if (!priceId) {
+      throw new Error('Invalid plan selected');
+    }
+
+    // Generate workspace ID client-side
+    const workspaceId = 'ws_' + Math.random().toString(36).substring(2, 18);
+
+    // Initialize Paddle if not already done
+    if (typeof Paddle !== 'undefined' && !paddleInitialized) {
+      initPaddle();
+    }
+
+    if (typeof Paddle === 'undefined') {
+      throw new Error('Paddle not loaded. Please refresh the page.');
+    }
+
+    // Close modal before opening Paddle overlay
+    closeCheckoutModal();
+
+    // Open Paddle inline checkout
+    Paddle.Checkout.open({
+      items: [{ priceId: priceId, quantity: 1 }],
+      customer: { email: email },
+      customData: {
+        workspace_id: workspaceId,
+        plan: _checkoutPlan,
+        email: email
+      },
+      settings: {
+        displayMode: 'overlay',
+        theme: 'light',
+        locale: 'en',
+        successUrl: `https://contextmesh.dev/success?workspace=${workspaceId}&plan=${_checkoutPlan}`
+      }
     });
 
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    closeCheckoutModal();
-    window.location.href = data.checkout_url;
+    // Reset plan button
+    if (planBtn) { planBtn.textContent = 'Get started →'; planBtn.style.opacity = '1'; }
 
   } catch(err) {
     btn.textContent = 'Continue to payment →';
     btn.disabled = false;
     if (planBtn) { planBtn.textContent = 'Get started →'; planBtn.style.opacity = '1'; }
-    errEl.textContent = 'Checkout unavailable. Try again or email hello@contextmesh.dev';
-    console.error(err);
+    errEl.textContent = err.message || 'Checkout unavailable. Try again or email hello@contextmesh.dev';
+    console.error('Checkout error:', err);
   }
 }
 
@@ -896,6 +981,9 @@ document.addEventListener('mousemove', e => {
   if (hero) hero.style.backgroundPosition = `${x}px ${y}px`;
 });
 </script>
+
+<!-- Paddle.js Script -->
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 
 <!-- CHECKOUT MODAL -->
 <div id="checkout-modal" style="display:none;position:fixed;inset:0;background:rgba(10,10,8,.75);z-index:999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)">

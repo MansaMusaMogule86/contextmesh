@@ -223,26 +223,20 @@ async def create_checkout(body: CheckoutRequest):
 
     workspace_id = f"ws_{secrets.token_hex(8)}"
 
-    # Create Paddle checkout session
-    checkout = await paddle_post("/transactions", {
-        "items": [{"price_id": price_id, "quantity": 1}],
-        "customer": {"email": body.email},
+    # Return data for Paddle.js inline checkout (client-side)
+    # The frontend will use Paddle.Checkout.open() with these details
+    return {
+        "price_id":     price_id,
+        "email":        body.email,
+        "workspace_id": workspace_id,
+        "plan":         plan,
         "custom_data": {
             "workspace_id": workspace_id,
             "plan":         plan,
             "email":        body.email,
         },
-        "checkout": {
-            "url": f"{APP_URL}/success",
-        },
-        "success_url": f"{APP_URL}/success?workspace={workspace_id}",
-    })
-
-    checkout_url = checkout.get("data", {}).get("checkout", {}).get("url", "")
-    if not checkout_url:
-        raise HTTPException(500, "Paddle did not return checkout URL")
-
-    return {"checkout_url": checkout_url, "workspace_id": workspace_id}
+        "success_url": f"{APP_URL}/success?workspace={workspace_id}&plan={plan}",
+    }
 
 
 @router.post("/webhook")
